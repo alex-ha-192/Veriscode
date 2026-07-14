@@ -2,7 +2,7 @@ import * as cp from "child_process";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
-import { resolveBinary } from "../toolchain";
+import { resolveBinary, resolveBundledPlatformDir } from "../toolchain";
 import { generateTestbench, sampleTimeForStep } from "./testbenchGenerator";
 import { parseVcd, sampleSignal } from "./vcdParser";
 import { ParsedModule, SimStep, SimulationResult, WaveformSignal } from "./types";
@@ -24,7 +24,11 @@ export interface IcarusPaths {
  * end user's machine. See https://github.com/steveicarus/iverilog/issues/1344.
  */
 function bundledSupportDir(extensionPath: string): string | undefined {
-  const platformDir = `${process.platform}-${process.arch}`;
+  // Must resolve to the *same* platform directory resolveBinary() picked
+  // (including its win32/darwin arm64->x64 emulation fallback) - the
+  // support dir has to match whichever binary actually got launched.
+  const platformDir = resolveBundledPlatformDir(extensionPath);
+  if (!platformDir) return undefined;
   const dir = path.join(extensionPath, "bin", platformDir, "lib");
   return fs.existsSync(dir) ? dir : undefined;
 }

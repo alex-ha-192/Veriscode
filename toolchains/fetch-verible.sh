@@ -5,13 +5,13 @@
 # packaged Veriscode installers never need the user to install Verible
 # themselves.
 #
-# Usage: fetch-verible.sh <linux-x64|win32-x64>
+# Usage: fetch-verible.sh <linux-x64|linux-arm64|win32-x64|darwin-x64|darwin-arm64>
 #
 # Requires network access (this is meant to run in CI, which has it - the
 # sandboxed dev container this repo was authored in deliberately does not).
 set -euo pipefail
 
-TARGET="${1:?usage: fetch-verible.sh <linux-x64|win32-x64>}"
+TARGET="${1:?usage: fetch-verible.sh <linux-x64|linux-arm64|win32-x64|darwin-x64|darwin-arm64>}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 MANIFEST="$SCRIPT_DIR/manifest.json"

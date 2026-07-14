@@ -11,6 +11,11 @@
 # predictably at bin/win32-x64/{iverilog.exe,vvp.exe,*.dll} and
 # bin/win32-x64/lib/{*.vpi,*.conf,*.tgt,...}.
 #
+# Only targets win32-x64 - there's no native Chocolatey/Icarus build for
+# Windows on ARM. toolchain.ts's resolveBinary() falls back to this x64
+# build on win32-arm64 machines instead, which runs transparently under
+# Windows 11's built-in x64 emulation (Prism).
+#
 # Requires network access - meant to run in GitHub Actions (windows-latest),
 # not in the sandboxed Linux dev container this repo was authored in.
 

@@ -8,8 +8,15 @@ on:
 
 jobs:
   test-extensions:
-    name: Compile & test extensions
-    runs-on: ubuntu-latest
+    name: Compile & test (${{ matrix.arch }})
+    strategy:
+      matrix:
+        include:
+          - arch: amd64
+            runs-on: ubuntu-latest
+          - arch: arm64
+            runs-on: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runs-on }}
     steps:
       - uses: actions/checkout@v4
 
@@ -31,6 +38,7 @@ jobs:
         run: |
           node test/manual-e2e.js
           node test/manual-e2e-comb.js
+          node test/toolchain-fallback.js
 
       - name: Package extensions (.vsix)
         run: |
@@ -41,5 +49,5 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: veriscode-extensions
+          name: veriscode-extensions-${{ matrix.arch }}
           path: dist/*.vsix

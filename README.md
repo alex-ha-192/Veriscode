@@ -29,21 +29,34 @@ rather than trying to cram everything into the sidebar.
 ## Install
 
 Two ordinary VS Code extensions - install into any VS Code, VSCodium,
-Cursor, etc., on Windows, macOS, or Linux, via **Install from VSIX...**
-in the Extensions view.
+Cursor, etc., on Windows, macOS, or Linux, on either amd64 or arm64, via
+**Install from VSIX...** in the Extensions view.
 
 **The bundled, self-contained build** (recommended) packages Verible +
-Icarus Verilog for Windows, macOS (Intel + Apple Silicon), and Linux all
-into the same `.vsix` - `resolveBinary()` in each extension picks the
-right one for whatever OS it's actually running on at runtime, so the end
-user never installs or even sees Verible/Icarus directly.
+Icarus Verilog for **Windows (x64), macOS (Intel + Apple Silicon), and
+Linux (x64 + arm64)** all into the same `.vsix` - `resolveBinary()` in
+each extension picks the right one for whatever OS/arch it's actually
+running on at runtime, so the end user never installs or even sees
+Verible/Icarus directly. Windows-on-ARM has no native Verible/Icarus
+build to bundle, so it deliberately falls back to the x64 build there
+instead, which runs transparently under Windows 11's built-in x64
+emulation (Prism) - the same trick Apple Silicon's Rosetta 2 provides
+(macOS still gets a real native arm64 build, since a hosted Apple Silicon
+CI runner is available; Windows-on-ARM CI is available too, but building
+a native Icarus for it isn't, since neither Chocolatey nor Verible ship
+one). `resolveBundledPlatformDir()`'s fallback is arch-aware: it will
+*not* silently substitute an x64 build on Linux arm64, since Linux has no
+equivalent transparent emulation layer - see
+`test/toolchain-fallback.js`.
+
 `.github/workflows/build-universal-vsix.yml` builds this: a matrix job
 stages Verible (one job - it ships prebuilt static binaries for every
-platform already) and Icarus Verilog (one job per OS, since that needs a
-real per-platform install), then a final job merges everything into one
-checkout and packages both `.vsix` files once. Trigger it manually
-(`workflow_dispatch`) or by pushing a `v*` tag; the built files show up
-as a workflow artifact.
+platform already, including linux-arm64) and Icarus Verilog (one job per
+OS/arch that needs a real install: linux-x64, linux-arm64 on GitHub's
+free hosted arm64 runner, win32-x64, darwin-x64, darwin-arm64), then a
+final job merges everything into one checkout and packages both `.vsix`
+files once. Trigger it manually (`workflow_dispatch`) or by pushing a
+`v*` tag; the built files show up as a workflow artifact.
 
 This bundling mechanism - and specifically the trickiest part of it,
 relocating Icarus Verilog's binaries (which bake in absolute paths to
@@ -53,9 +66,12 @@ their own support directory, via `-B` at compile time and
 copied out of their normal `/usr/bin` install into the extension's
 `bin/linux-x64/` layout, the system copies were then deleted entirely,
 and the simulation engine's test suite still passed correctly using only
-the relocated copy. The Windows/macOS legs use the identical mechanism
-but couldn't be exercised the same way in this sandbox (no Windows/macOS
-runner, no Chocolatey/Homebrew network access there) - see
+the relocated copy (this sandbox is amd64, so only that arch's real
+toolchain could be exercised locally; `.github/workflows/ci.yml` runs the
+same real-iverilog test suite on both amd64 and arm64 hosted runners on
+every push). The Windows/macOS legs use the identical relocation
+mechanism but couldn't be exercised the same way in this sandbox (no
+Windows/macOS runner, no Chocolatey/Homebrew network access there) - see
 `docs/toolchain-notes.md`.
 
 ### Try it now, without waiting on CI
