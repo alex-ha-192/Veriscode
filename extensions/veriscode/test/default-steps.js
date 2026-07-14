@@ -43,5 +43,41 @@ const activeHighSteps = buildDefaultSteps(activeHighModule, 2);
 check("active-high: cycle 0 asserted (reset=1)", activeHighSteps[0].reset, "1");
 check("active-high: cycle 1 released (reset=0)", activeHighSteps[1].reset, "0");
 
+// Data ports that merely contain the "rst"/"reset" substring must NOT be
+// misdetected as resets (the whole point of token-anchored matching).
+const falsePositiveModule = parseModule(`
+  module bar (
+    input  logic       clk,
+    input  logic [7:0] burst_len,
+    input  logic       first_word,
+    input  logic       worst_case,
+    input  logic       preset_value
+  );
+  endmodule
+`);
+for (const name of ["burst_len", "first_word", "worst_case", "preset_value"]) {
+  const p = falsePositiveModule.ports.find((x) => x.name === name);
+  check(`'${name}' not misdetected as reset`, p.resetPolarity, undefined);
+}
+
+// Common reset spellings and their polarities.
+const spellings = {
+  rst: "active-high",
+  rst_n: "active-low",
+  rstn: "active-low",
+  reset_n: "active-low",
+  resetn: "active-low",
+  nrst: "active-low",
+  arst: "active-high",
+  aresetn: "active-low",
+  reset_b: "active-low",
+  rst_ni: "active-low",
+};
+for (const [name, expected] of Object.entries(spellings)) {
+  const m = parseModule(`module t (input logic clk, input logic ${name}); endmodule`);
+  const p = m.ports.find((x) => x.name === name);
+  check(`'${name}' -> ${expected}`, p && p.resetPolarity, expected);
+}
+
 console.log(failures === 0 ? "ALL PASS" : `${failures} FAILURE(S)`);
 process.exit(failures === 0 ? 0 : 1);

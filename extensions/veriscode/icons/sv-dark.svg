@@ -1,4 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16">
-  <rect width="16" height="16" rx="3" fill="#8a2be2"/>
-  <text x="8" y="11.5" font-family="Arial, sans-serif" font-size="7" font-weight="bold" fill="#ffffff" text-anchor="middle">SV</text>
+  <defs>
+    <linearGradient id="vc-dark" x1="0" y1="0" x2="16" y2="16" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#9a6bff"/>
+      <stop offset="1" stop-color="#3d84ff"/>
+    </linearGradient>
+  </defs>
+  <rect width="16" height="16" rx="3.5" fill="url(#vc-dark)"/>
+  <text x="8" y="8.6" font-family="'Segoe UI',-apple-system,Helvetica,Arial,sans-serif" font-size="7" font-weight="700" letter-spacing="-0.3" fill="#ffffff" text-anchor="middle" dominant-baseline="middle">SV</text>
 </svg>

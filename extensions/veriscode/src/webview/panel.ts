@@ -20,6 +20,10 @@ export class SimulatorPanel {
   private module: ParsedModule;
   private steps: SimStep[];
   private disposed = false;
+  // Monotonic token so that if edits queue several simulations, a slow
+  // earlier run can't overwrite the result of a newer one that finished
+  // first (each simulate() call is an independent iverilog+vvp process).
+  private simGeneration = 0;
 
   static async show(
     context: vscode.ExtensionContext,
@@ -162,6 +166,7 @@ export class SimulatorPanel {
   }
 
   private async runSimulation(): Promise<void> {
+    const generation = ++this.simGeneration;
     this.post({ type: "status", message: "Simulating…", kind: "running" });
     const config = vscode.workspace.getConfiguration("veriscode.simulator");
     const result = await simulate(this.module, this.document.uri.fsPath, this.steps, CLOCK_PERIOD_NS, {
@@ -169,6 +174,11 @@ export class SimulatorPanel {
       iverilogOverride: config.get<string>("icarusPath"),
       vvpOverride: config.get<string>("vvpPath"),
     });
+    // Drop this result if a newer simulation was kicked off while we ran -
+    // its result is the one that matches the current steps/module state.
+    if (generation !== this.simGeneration) {
+      return;
+    }
     this.post({ type: "result", result });
   }
 

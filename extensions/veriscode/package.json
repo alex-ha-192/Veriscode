@@ -6,6 +6,7 @@
   "publisher": "veriscode",
   "license": "MIT",
   "private": true,
+  "icon": "icon.png",
   "engines": {
     "vscode": "^1.90.0"
   },

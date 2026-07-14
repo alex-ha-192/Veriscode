@@ -2,14 +2,43 @@ import { ParsedModule, Port, PortDirection } from "./types";
 
 const CLOCK_NAME = /^(clk|clock)(_[a-z0-9]+)?$/i;
 
-// Best-effort reset detection, purely for picking sane *default* step
-// values (see buildDefaultSteps in webview/panel.ts) - never a hard
-// constraint, since every cell stays freely editable regardless. Any
-// name containing "rst"/"reset" counts as reset-like; a trailing "_n",
-// "n", or "_b" (bar) marks it active-low, matching common conventions
-// (rst_n, rstn, aresetn, reset_b); anything else defaults to active-high.
-const RESET_NAME = /rst|reset/i;
-const ACTIVE_LOW_SUFFIX = /(_n|_ni|_b|n)$/i;
+// A reset "core" token: optional a (async) / n (negated) prefix, "rst" or
+// "reset", optional trailing n. Matches rst, rstn, nrst, arst, reset,
+// resetn, nreset, aresetn - but NOT data ports that merely *contain* the
+// substring (burst, first, worst), because it's anchored to a whole
+// underscore-delimited token rather than matched anywhere in the name.
+const RESET_CORE = /^(a)?(n)?(rst|reset)(n)?$/;
+// A separate polarity-suffix token, e.g. the "n" in rst_n, "ni" in rst_ni,
+// "b" (bar) in reset_b.
+const RESET_POLARITY_SUFFIX = /^(n|ni|nn|b)$/;
+
+/**
+ * Best-effort reset detection from a port name, purely for picking sane
+ * *default* step values (see buildDefaultSteps) and an informational
+ * badge - never a hard constraint, since every cell stays freely editable
+ * regardless. Returns undefined for non-reset-looking names.
+ */
+export function detectResetPolarity(name: string): "active-low" | "active-high" | undefined {
+  const tokens = name.toLowerCase().split("_").filter(Boolean);
+  let coreIdx = -1;
+  let coreMatch: RegExpExecArray | null = null;
+  for (let i = 0; i < tokens.length; i++) {
+    const m = RESET_CORE.exec(tokens[i]);
+    if (m) {
+      coreIdx = i;
+      coreMatch = m;
+      break;
+    }
+  }
+  if (!coreMatch) return undefined;
+
+  const negatedPrefix = !!coreMatch[2]; // nrst / nreset
+  const negatedSuffix = !!coreMatch[4]; // rstn / resetn
+  const nextToken = tokens[coreIdx + 1];
+  const suffixPolarity = nextToken !== undefined && RESET_POLARITY_SUFFIX.test(nextToken); // rst_n / reset_b
+  const activeLow = negatedPrefix || negatedSuffix || suffixPolarity;
+  return activeLow ? "active-low" : "active-high";
+}
 
 /**
  * Strips // and /* *\/ comments while preserving line structure (so later
@@ -199,11 +228,7 @@ function parsePortDecl(
   const resolved = widthOfRange(packedRange, params);
   const width = resolved ?? UNRESOLVED_WIDTH_FALLBACK;
   const declRange = width > 1 ? `[${width - 1}:0]` : undefined;
-  const resetPolarity: Port["resetPolarity"] = RESET_NAME.test(name)
-    ? ACTIVE_LOW_SUFFIX.test(name)
-      ? "active-low"
-      : "active-high"
-    : undefined;
+  const resetPolarity = detectResetPolarity(name);
 
   return [
     {
