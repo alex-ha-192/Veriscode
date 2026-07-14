@@ -1,9 +1,9 @@
 name: Build portable multi-platform .vsix
 
-# Produces a single .vsix per extension that bundles Verible + Icarus
+# Produces a single .vsix (one extension) that bundles Verible + Icarus
 # Verilog binaries for Windows (x64), macOS (x64 + arm64), and Linux
-# (x64 + arm64) all together (extension/bin/<platform>-<arch>/...) -
-# resolveBinary() in toolchain.ts already picks the right one for
+# (x64 + arm64) all together (extensions/veriscode/bin/<platform>-<arch>/...)
+# - resolveBinary() in toolchain.ts already picks the right one for
 # whatever OS/arch the extension is running on, at runtime. Install once
 # via "Install from VSIX..." in any VS Code/VSCodium/Cursor/etc., on any
 # of those platforms.
@@ -35,7 +35,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: verible-bins
-          path: extensions/veriscode-systemverilog/bin/
+          path: extensions/veriscode/bin/
 
   icarus-linux:
     runs-on: ubuntu-latest
@@ -45,7 +45,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: icarus-linux-x64
-          path: extensions/veriscode-simulator/bin/linux-x64/
+          path: extensions/veriscode/bin/linux-x64/
 
   icarus-linux-arm64:
     # Free, GA hosted arm64 Linux runner (public repos only - see
@@ -59,7 +59,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: icarus-linux-arm64
-          path: extensions/veriscode-simulator/bin/linux-arm64/
+          path: extensions/veriscode/bin/linux-arm64/
 
   icarus-windows:
     runs-on: windows-latest
@@ -74,7 +74,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: icarus-win32-x64
-          path: extensions/veriscode-simulator/bin/win32-x64/
+          path: extensions/veriscode/bin/win32-x64/
 
   icarus-macos-x64:
     runs-on: macos-13 # Intel runner
@@ -84,7 +84,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: icarus-darwin-x64
-          path: extensions/veriscode-simulator/bin/darwin-x64/
+          path: extensions/veriscode/bin/darwin-x64/
 
   icarus-macos-arm64:
     runs-on: macos-14 # Apple Silicon runner
@@ -94,7 +94,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: icarus-darwin-arm64
-          path: extensions/veriscode-simulator/bin/darwin-arm64/
+          path: extensions/veriscode/bin/darwin-arm64/
 
   package:
     needs:
@@ -113,48 +113,51 @@ jobs:
         with:
           node-version: "22"
 
+      # Verible's per-platform binaries and Icarus's live in the same
+      # extensions/veriscode/bin/<platform-arch>/ directories (Verible's
+      # go straight in each dir, Icarus's need one more /lib level) - all
+      # six downloads below merge into that one tree without conflicting,
+      # since none of them share a filename.
       - uses: actions/download-artifact@v4
         with:
           name: verible-bins
-          path: extensions/veriscode-systemverilog/bin/
+          path: extensions/veriscode/bin/
       - uses: actions/download-artifact@v4
         with:
           name: icarus-linux-x64
-          path: extensions/veriscode-simulator/bin/linux-x64/
+          path: extensions/veriscode/bin/linux-x64/
       - uses: actions/download-artifact@v4
         with:
           name: icarus-linux-arm64
-          path: extensions/veriscode-simulator/bin/linux-arm64/
+          path: extensions/veriscode/bin/linux-arm64/
       - uses: actions/download-artifact@v4
         with:
           name: icarus-win32-x64
-          path: extensions/veriscode-simulator/bin/win32-x64/
+          path: extensions/veriscode/bin/win32-x64/
       - uses: actions/download-artifact@v4
         with:
           name: icarus-darwin-x64
-          path: extensions/veriscode-simulator/bin/darwin-x64/
+          path: extensions/veriscode/bin/darwin-x64/
       - uses: actions/download-artifact@v4
         with:
           name: icarus-darwin-arm64
-          path: extensions/veriscode-simulator/bin/darwin-arm64/
+          path: extensions/veriscode/bin/darwin-arm64/
 
       - name: Restore executable bits
         run: |
-          chmod +x extensions/veriscode-systemverilog/bin/*/verible-* || true
-          chmod +x extensions/veriscode-simulator/bin/linux-*/{iverilog,vvp,iverilog-vpi} || true
-          chmod +x extensions/veriscode-simulator/bin/darwin-*/{iverilog,vvp,iverilog-vpi} || true
+          chmod +x extensions/veriscode/bin/*/verible-* || true
+          chmod +x extensions/veriscode/bin/linux-*/{iverilog,vvp,iverilog-vpi} || true
+          chmod +x extensions/veriscode/bin/darwin-*/{iverilog,vvp,iverilog-vpi} || true
 
       - name: Install & compile
         run: |
           npm ci
           npm run compile
 
-      - name: Package portable .vsix files
+      - name: Package portable .vsix
         run: |
           mkdir -p dist
-          for ext in veriscode-systemverilog veriscode-simulator; do
-            (cd "extensions/$ext" && npx --yes @vscode/vsce package --no-dependencies --allow-missing-repository -o ../../dist/)
-          done
+          (cd extensions/veriscode && npx --yes @vscode/vsce package --no-dependencies --allow-missing-repository -o ../../dist/)
 
       - uses: actions/upload-artifact@v4
         with:

@@ -1,20 +1,44 @@
 import * as vscode from "vscode";
-import { VeribleLinter, isSystemVerilogDoc, formatWithVerible } from "./veribleLint";
+import { newProjectCommand } from "./newProject";
+import { SimulateCodeLensProvider } from "./simulateCodeLens";
+import { SimulatorPanel } from "./webview/panel";
+import { SidebarViewProvider } from "./webview/sidebarView";
+import { VeribleLinter, formatWithVerible } from "./veribleLint";
+import { isSystemVerilogDoc } from "./isSystemVerilogDoc";
 
 export function activate(context: vscode.ExtensionContext): void {
   const linter = new VeribleLinter(context);
   context.subscriptions.push(linter);
 
-  const lintOpenDocs = () => {
-    for (const doc of vscode.workspace.textDocuments) {
-      if (isSystemVerilogDoc(doc)) {
-        void linter.lint(doc);
-      }
+  for (const doc of vscode.workspace.textDocuments) {
+    if (isSystemVerilogDoc(doc)) {
+      void linter.lint(doc);
     }
-  };
-  lintOpenDocs();
+  }
 
   context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider(SidebarViewProvider.viewType, new SidebarViewProvider(context)),
+
+    vscode.commands.registerCommand("veriscode.newProject", () => newProjectCommand(context)),
+
+    vscode.commands.registerCommand("veriscode.simulate", async (uri?: vscode.Uri) => {
+      const targetUri = uri ?? vscode.window.activeTextEditor?.document.uri;
+      if (!targetUri) {
+        void vscode.window.showErrorMessage("Open a SystemVerilog file to simulate.");
+        return;
+      }
+      const document = await vscode.workspace.openTextDocument(targetUri);
+      const cycles = vscode.workspace
+        .getConfiguration("veriscode.simulator")
+        .get<number>("defaultCycles", 8);
+      await SimulatorPanel.show(context, document, cycles);
+    }),
+
+    vscode.languages.registerCodeLensProvider(
+      [{ language: "systemverilog" }, { language: "verilog" }],
+      new SimulateCodeLensProvider()
+    ),
+
     vscode.workspace.onDidOpenTextDocument((doc) => {
       if (isSystemVerilogDoc(doc)) {
         void linter.lint(doc);
