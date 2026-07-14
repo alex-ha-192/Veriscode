@@ -41,6 +41,7 @@ jobs:
           node test/manual-workshop-cpu.js
           node test/manual-workshop-stages.js
           node test/manual-workshop-templates-compile.js
+          node test/manual-template-picker.js
           node test/toolchain-fallback.js
           node test/default-steps.js
 
