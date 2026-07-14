@@ -37,9 +37,12 @@ for bin in iverilog vvp iverilog-vpi; do
   fi
 done
 
-SUPPORT_DIR=$(find "$BREW_PREFIX" -maxdepth 4 -type d -name ivl 2>/dev/null | head -n1)
-if [[ -z "$SUPPORT_DIR" ]]; then
-  echo "error: could not find Icarus's ivl support directory under $BREW_PREFIX" >&2
+# Search by content (a .vpi module) rather than assuming the support
+# directory is named "ivl" - that's true for Debian/apt's build but not
+# necessarily for Homebrew's, whose install layout isn't documented.
+SUPPORT_DIR=$(dirname "$(find "$BREW_PREFIX" -type f -name "*.vpi" 2>/dev/null | head -n1)")
+if [[ -z "$SUPPORT_DIR" || "$SUPPORT_DIR" == "." ]]; then
+  echo "error: could not find Icarus's .vpi support directory under $BREW_PREFIX" >&2
   exit 1
 fi
 cp -r "$SUPPORT_DIR/." "$LIB_DEST/"
