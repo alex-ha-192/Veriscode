@@ -37,6 +37,7 @@ jobs:
         run: |
           node test/manual-e2e.js
           node test/manual-e2e-comb.js
+          node test/manual-multimodule.js
           node test/toolchain-fallback.js
           node test/default-steps.js
 
