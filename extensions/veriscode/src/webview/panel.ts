@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { parseModule } from "../simulation/portParser";
 import { simulate } from "../simulation/icarusRunner";
-import { buildDefaultSteps } from "../simulation/defaultSteps";
+import { buildDefaultSteps, backfillSteps } from "../simulation/defaultSteps";
 import { ParsedModule, SimStep } from "../simulation/types";
 
 interface ClientState {
@@ -152,7 +152,10 @@ export class SimulatorPanel {
       return;
     }
     this.module = reparsed;
-    // Keep user-entered values for ports that still exist; drop the rest.
+    // Keep user-entered values for ports that still exist; drop the rest;
+    // fill in a sensible default for any newly-introduced port (editing
+    // the file to add an input mid-session must not leave a step with a
+    // missing value - see backfillSteps).
     const validNames = new Set(reparsed.ports.map((p) => p.name));
     this.steps = this.steps.map((step) => {
       const filtered: SimStep = {};
@@ -161,6 +164,7 @@ export class SimulatorPanel {
       }
       return filtered;
     });
+    backfillSteps(reparsed, this.steps);
     this.post({ type: "init", state: this.clientState() });
     void this.runSimulation();
   }

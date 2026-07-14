@@ -5,7 +5,7 @@
 const path = require("path");
 const fs = require("fs");
 const { parseModule } = require("../out/simulation/portParser");
-const { buildDefaultSteps } = require("../out/simulation/defaultSteps");
+const { buildDefaultSteps, backfillSteps } = require("../out/simulation/defaultSteps");
 
 let failures = 0;
 function check(label, actual, expected) {
@@ -78,6 +78,23 @@ for (const [name, expected] of Object.entries(spellings)) {
   const p = m.ports.find((x) => x.name === name);
   check(`'${name}' -> ${expected}`, p && p.resetPolarity, expected);
 }
+
+// backfillSteps: a port introduced after the step table already exists
+// (e.g. editing the file mid-session to add a new input) must get a
+// default value, not be left undefined - undefined reaches the testbench
+// generator as a crash (see testbenchGenerator.js's sanitizeValue).
+const backfillModule = parseModule(`
+  module baz (
+    input logic clk,
+    input logic rst_n,
+    input logic new_port
+  );
+  endmodule
+`);
+const partialSteps = [{ rst_n: "0" }, { rst_n: "1" }, { rst_n: "1" }];
+backfillSteps(backfillModule, partialSteps);
+check("backfill: existing values untouched", partialSteps.map((s) => s.rst_n), ["0", "1", "1"]);
+check("backfill: new port filled with default", partialSteps.map((s) => s.new_port), ["0", "0", "0"]);
 
 console.log(failures === 0 ? "ALL PASS" : `${failures} FAILURE(S)`);
 process.exit(failures === 0 ? 0 : 1);
