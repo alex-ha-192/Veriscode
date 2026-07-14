@@ -1,0 +1,20 @@
+{
+  "name": "veriscode",
+  "private": true,
+  "version": "0.1.0",
+  "description": "A VS Code-based SystemVerilog learning IDE with built-in Verible linting and an interactive Icarus Verilog simulator.",
+  "workspaces": [
+    "extensions/veriscode-systemverilog",
+    "extensions/veriscode-simulator"
+  ],
+  "scripts": {
+    "build": "npm run compile --workspaces",
+    "compile": "npm run compile --workspaces",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "package:extensions": "npm run package --workspaces --if-present"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4"
+  }
+}

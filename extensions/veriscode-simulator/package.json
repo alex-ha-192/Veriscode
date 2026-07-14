@@ -1,0 +1,109 @@
+{
+  "name": "veriscode-simulator",
+  "displayName": "SystemVerilog Interactive Simulator (Veriscode)",
+  "description": "Project scaffolding and an interactive, cycle-by-cycle SystemVerilog simulator (Icarus Verilog under the hood) with a live timing diagram.",
+  "version": "0.1.0",
+  "publisher": "veriscode",
+  "license": "MIT",
+  "private": true,
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": ["Debuggers", "Education", "Other"],
+  "activationEvents": [
+    "onLanguage:systemverilog",
+    "onLanguage:verilog",
+    "onCommand:veriscode.newProject",
+    "onCommand:veriscode.simulate",
+    "onView:veriscode.home"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "veriscode.newProject",
+        "title": "New SystemVerilog Project",
+        "shortTitle": "SystemVerilog Project",
+        "category": "Veriscode"
+      },
+      {
+        "command": "veriscode.simulate",
+        "title": "Simulate",
+        "category": "Veriscode",
+        "icon": "$(play)"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "veriscode",
+          "title": "Veriscode",
+          "icon": "media/activity-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "veriscode": [
+        {
+          "type": "webview",
+          "id": "veriscode.home",
+          "name": "Veriscode"
+        }
+      ]
+    },
+    "menus": {
+      "editor/title": [
+        {
+          "command": "veriscode.simulate",
+          "when": "resourceLangId == systemverilog || resourceLangId == verilog",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        { "command": "veriscode.newProject" },
+        {
+          "command": "veriscode.simulate",
+          "when": "resourceLangId == systemverilog || resourceLangId == verilog"
+        }
+      ],
+      "file/newFile": [
+        {
+          "command": "veriscode.newProject",
+          "group": "file"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Veriscode Simulator",
+      "properties": {
+        "veriscode.simulator.icarusPath": {
+          "type": "string",
+          "default": "",
+          "description": "Override path to the iverilog binary. Leave blank to use the bundled copy."
+        },
+        "veriscode.simulator.vvpPath": {
+          "type": "string",
+          "default": "",
+          "description": "Override path to the vvp binary. Leave blank to use the bundled copy."
+        },
+        "veriscode.simulator.defaultCycles": {
+          "type": "number",
+          "default": 8,
+          "description": "Number of clock cycles (or steps, for combinational designs) shown when a simulation first opens."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -w -p ./",
+    "test": "node ./out/test/runTests.js",
+    "package": "npx @vscode/vsce package --no-dependencies -o ../../dist/"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^20.14.9",
+    "@types/vscode": "^1.90.0",
+    "typescript": "^5.5.4"
+  }
+}
