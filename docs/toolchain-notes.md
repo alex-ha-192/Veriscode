@@ -36,11 +36,11 @@ allowed).
 
 ## Written from research, not yet run end-to-end
 
-These all depend on outbound access this sandbox doesn't have (GitHub
-releases, Chocolatey, Flathub) and/or a platform this sandbox isn't
-(Windows; a Flatpak-capable Linux with `flatpak-builder`). They're grounded
-in real, fetched documentation (cited in code comments) rather than
-guesses, but expect the first CI runs to need a fixup pass:
+These depend on outbound access this sandbox doesn't have (GitHub
+releases, Chocolatey, Homebrew) and/or a platform this sandbox isn't
+(Windows, macOS). They're grounded in real, fetched documentation (cited
+in code comments) rather than guesses, but expect the first CI run of
+`build-universal-vsix.yml` to need a fixup pass:
 
 - `toolchains/fetch-verible.sh` - asset naming was confirmed against a real
   Verible release page, but the archive's internal `bin/` layout is
@@ -49,21 +49,11 @@ guesses, but expect the first CI runs to need a fixup pass:
 - `toolchains/fetch-icarus-windows.ps1` - the Chocolatey package's install
   layout isn't documented publicly; the script searches several plausible
   install roots rather than assuming one.
-- `scripts/apply-overlay.sh` / `scripts/build.sh` - the VSCodium injection
-  point (merging our `branding/product.overlay.json` onto VSCodium's own
-  root `product.json` before its `prepare_vscode.sh` runs) is grounded in
-  VSCodium's actual `prepare_vscode.sh` source
-  (`jq -s '.[0] * .[1]' product.json ../product.json`), fetched and read
-  during development. The icon-rebrand step is intentionally best-effort
-  (see the comments in `apply-overlay.sh`) since exact icon paths inside
-  VSCodium's `src/stable/` tree weren't independently confirmed.
-- `installers/flatpak/com.veriscode.veriscode.yaml` - modeled directly on
-  the real `flathub/com.vscodium.codium` manifest. The `iverilog` module
-  builds Icarus Verilog from source inside the sandbox (Flatpak has no
-  host package manager to depend on); it's pinned to `branch: master`
-  as a placeholder - pin it to a real release tag once verified.
+- `toolchains/fetch-icarus-macos.sh` - same idea via Homebrew; `brew
+  --prefix` plus a `find` for the `ivl` support directory, rather than a
+  hardcoded path, for the same reason.
 
 If a CI run fails on one of these, the fix is almost always: inspect the
-step's log, adjust the one wrong path/tag/flag, re-run - the overall
-pipeline shape (VSCodium's build, then our overlay, then VSCodium's
-packaging) is sound.
+step's log and adjust the one wrong path/flag, then re-run - the Linux leg
+of the same mechanism is fully verified (see above), so the overall
+approach is sound even where a specific path guess needs a tweak.

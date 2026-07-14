@@ -5,10 +5,7 @@ name: Build portable multi-platform .vsix
 # together (extension/bin/<platform>-<arch>/...) - resolveBinary() in
 # toolchain.ts already picks the right one for whatever OS the extension
 # is running on, at runtime. Install once via "Install from VSIX..." in
-# any VS Code/VSCodium/Cursor/etc. on any of the three platforms - this is
-# the primary, low-risk distribution path (see README); the VSCodium fork
-# + native installers (build-windows.yml/build-linux.yml) is a heavier,
-# less-verified path towards a fully standalone branded app.
+# any VS Code/VSCodium/Cursor/etc. on any of the three platforms.
 on:
   workflow_dispatch:
   push:
