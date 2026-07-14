@@ -60,6 +60,16 @@ searching for content instead of assuming a name/structure:
   `test/toolchain-fallback.js`, including the negative case: Linux arm64
   must *not* fall back to an x64 binary, since no transparent emulation
   exists there.
+- **Performance**: a full compile+simulate cycle (real `iverilog` + `vvp`,
+  not a mock) for the workshop's largest design - the CPU, 12 clock
+  cycles - measured ~15ms per run in this sandbox (`test/manual-perf.js`,
+  which asserts a very generous 500ms ceiling in CI to catch a gross
+  regression without flaking on shared-runner variance). Cell edits in
+  the simulator panel are debounced 150ms (`SET_VALUE_DEBOUNCE_MS` in
+  `panel.ts`) so a burst of rapid clicks collapses into one simulate()
+  call rather than one per click - at ~15ms/run the debounce is about not
+  wasting CPU on soon-superseded results, not about any single run being
+  slow.
 
 ## Still unverified
 

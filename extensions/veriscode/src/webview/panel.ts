@@ -12,6 +12,13 @@ interface ClientState {
 }
 
 const CLOCK_PERIOD_NS = 10;
+// Collapses a burst of rapid cell edits (e.g. typing several values in
+// quick succession) into a single simulate() call instead of spawning an
+// iverilog+vvp process per keystroke - each run only takes ~15ms even for
+// the workshop's largest design (see docs/toolchain-notes.md), so this is
+// about not wasting CPU on results that are about to be superseded, not
+// about the runs themselves being slow.
+const SET_VALUE_DEBOUNCE_MS = 150;
 
 export class SimulatorPanel {
   private static readonly panels = new Map<string, SimulatorPanel>();
@@ -24,6 +31,7 @@ export class SimulatorPanel {
   // earlier run can't overwrite the result of a newer one that finished
   // first (each simulate() call is an independent iverilog+vvp process).
   private simGeneration = 0;
+  private setValueDebounce: ReturnType<typeof setTimeout> | undefined;
 
   static async show(
     context: vscode.ExtensionContext,
@@ -88,7 +96,12 @@ export class SimulatorPanel {
         this.reparseAndRerun();
       }
     });
-    this.panel.onDidDispose(() => saveListener.dispose());
+    this.panel.onDidDispose(() => {
+      saveListener.dispose();
+      if (this.setValueDebounce) {
+        clearTimeout(this.setValueDebounce);
+      }
+    });
   }
 
   private hasClock(): boolean {
@@ -120,7 +133,7 @@ export class SimulatorPanel {
         const step = this.steps[msg.step];
         if (step) {
           step[msg.signal] = msg.value;
-          await this.runSimulation();
+          this.scheduleSimulation();
         }
         break;
       }
@@ -167,6 +180,17 @@ export class SimulatorPanel {
     backfillSteps(reparsed, this.steps);
     this.post({ type: "init", state: this.clientState() });
     void this.runSimulation();
+  }
+
+  /** Debounced entry point for high-frequency triggers (cell edits). */
+  private scheduleSimulation(): void {
+    if (this.setValueDebounce) {
+      clearTimeout(this.setValueDebounce);
+    }
+    this.setValueDebounce = setTimeout(() => {
+      this.setValueDebounce = undefined;
+      void this.runSimulation();
+    }, SET_VALUE_DEBOUNCE_MS);
   }
 
   private async runSimulation(): Promise<void> {
