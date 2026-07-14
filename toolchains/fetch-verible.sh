@@ -29,7 +29,19 @@ curl -sSL -o "$WORK/$ASSET" "$URL"
 
 case "$ASSET" in
   *.tar.gz) tar -xzf "$WORK/$ASSET" -C "$WORK" ;;
-  *.zip) python3 -m zipfile -e "$WORK/$ASSET" "$WORK" ;;
+  *.zip)
+    # Prefer `unzip`: it converts backslash path separators to real
+    # subdirectories on extract, which some Windows-built zips rely on.
+    # Python's zipfile module treats backslashes as a literal filename
+    # character on POSIX, which silently produces a flat mess of
+    # oddly-named files instead of a bin/ subdirectory - fall back to it
+    # only if unzip genuinely isn't available.
+    if command -v unzip >/dev/null 2>&1; then
+      unzip -oq "$WORK/$ASSET" -d "$WORK"
+    else
+      python3 -m zipfile -e "$WORK/$ASSET" "$WORK"
+    fi
+    ;;
   *) echo "Unrecognized asset extension: $ASSET" >&2; exit 1 ;;
 esac
 
@@ -37,19 +49,15 @@ mkdir -p "$DEST"
 EXT=""
 [[ "$TARGET" == win32-* ]] && EXT=".exe"
 
-# The release archive extracts to a single top-level "<tag>/bin/" directory.
-SRC_BIN=$(find "$WORK" -type d -name bin | head -n1)
-if [[ -z "$SRC_BIN" ]]; then
-  echo "Could not find a bin/ directory inside the extracted Verible archive" >&2
-  exit 1
-fi
-
+# Search by binary name rather than assuming a "<tag>/bin/" layout -
+# archive structure (and path-separator handling) has varied across
+# releases/platforms, and this is robust to all of it.
 for name in verible-verilog-lint verible-verilog-format verible-verilog-ls verible-verilog-syntax; do
-  src="$SRC_BIN/$name$EXT"
-  if [[ -f "$src" ]]; then
-    cp "$src" "$DEST/"
+  src=$(find "$WORK" -type f -iname "*${name}${EXT}" | head -n1)
+  if [[ -n "$src" ]]; then
+    cp "$src" "$DEST/$name$EXT"
     chmod +x "$DEST/$name$EXT" 2>/dev/null || true
-    echo "Staged $name$EXT"
+    echo "Staged $name$EXT (from $src)"
   else
     echo "Warning: $name$EXT not found in this Verible release, skipping" >&2
   fi

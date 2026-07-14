@@ -36,11 +36,12 @@ done
 
 # The support directory (target .conf/.tgt files + .vpi modules) lives
 # under /usr/lib/<triplet>/ivl on Debian/Ubuntu (triplet varies by arch,
-# e.g. x86_64-linux-gnu vs aarch64-linux-gnu - discovered rather than
-# hardcoded for exactly that reason).
-SUPPORT_DIR=$(find /usr/lib -maxdepth 3 -type d -name ivl 2>/dev/null | head -n1)
-if [[ -z "$SUPPORT_DIR" ]]; then
-  echo "error: could not find Icarus's ivl support directory under /usr/lib" >&2
+# e.g. x86_64-linux-gnu vs aarch64-linux-gnu). Searched by content (a
+# .vpi module) rather than the "ivl" directory name itself, since that
+# name isn't guaranteed across distros/package versions.
+SUPPORT_DIR=$(dirname "$(find /usr/lib -type f -name "*.vpi" 2>/dev/null | head -n1)")
+if [[ -z "$SUPPORT_DIR" || "$SUPPORT_DIR" == "." ]]; then
+  echo "error: could not find Icarus's .vpi support directory under /usr/lib" >&2
   exit 1
 fi
 cp -r "$SUPPORT_DIR/." "$LIB_DEST/"
