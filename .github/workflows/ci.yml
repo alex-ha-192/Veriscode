@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test-extensions:
+    name: Compile & test extensions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install Icarus Verilog
+        run: sudo apt-get update && sudo apt-get install -y iverilog
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Compile
+        run: npm run compile
+
+      - name: Simulation engine smoke tests (real iverilog)
+        working-directory: extensions/veriscode-simulator
+        run: |
+          node test/manual-e2e.js
+          node test/manual-e2e-comb.js
+
+      - name: Package extensions (.vsix)
+        run: |
+          mkdir -p dist
+          for ext in veriscode-systemverilog veriscode-simulator; do
+            (cd "extensions/$ext" && npx --yes @vscode/vsce package --no-dependencies --allow-missing-repository -o ../../dist/)
+          done
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: veriscode-extensions
+          path: dist/*.vsix

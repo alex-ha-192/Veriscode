@@ -1,0 +1,86 @@
+# Flatpak manifest for Veriscode, modeled directly on flathub's VSCodium
+# manifest (github.com/flathub/com.vscodium.codium): it unpacks a prebuilt
+# .deb produced by our own Linux build (see scripts/build.sh /
+# .github/workflows/build-linux.yml) rather than compiling VS Code inside
+# the sandbox, which is how VSCodium's own Flatpak is built too.
+#
+# Unlike VSCodium, we also need Icarus Verilog available at runtime, and
+# Flatpak's sandbox means we can't rely on a host install - so it's built
+# from source as its own module below. This is the piece of the whole
+# pipeline least exercised in this repo's authoring environment (no
+# flatpak-builder or outbound github.com access in that sandbox - see
+# docs/toolchain-notes.md), and is the most likely spot to need a round
+# of CI iteration.
+#
+# During CI, the `codium` module's source below is rewritten to point at
+# the .deb this same workflow run just produced (see build-linux.yml) -
+# the `url`/`sha256` pair here is a placeholder for once real GitHub
+# Releases exist to point at instead.
+id: com.veriscode.veriscode
+sdk: org.freedesktop.Sdk
+runtime: org.freedesktop.Sdk
+runtime-version: "24.08"
+base: org.electronjs.Electron2.BaseApp
+base-version: "24.08"
+command: com.veriscode.veriscode
+finish-args:
+  - --share=ipc
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --socket=pulseaudio
+  - --share=network
+  - --device=all
+  - --filesystem=host
+  - --persist=.veriscode
+  - --persist=.veriscode-shared
+  - --allow=devel
+  - --talk-name=org.freedesktop.secrets
+  - --talk-name=org.freedesktop.Flatpak
+cleanup:
+  - /include
+  - /lib/pkgconfig
+  - /share/gtk-doc
+  - "*.la"
+modules:
+  - name: iverilog
+    buildsystem: autotools
+    config-opts:
+      - --prefix=/app
+    sources:
+      - type: git
+        url: https://github.com/steveicarus/iverilog.git
+        # NOTE: pin to a verified release tag before shipping - "master" is
+        # a placeholder because this couldn't be verified from the sandbox
+        # this repo was authored in (no outbound access to github.com
+        # there). Check `git ls-remote --tags` for the right tag, e.g. a
+        # `v13_0`-style tag, and pin it here.
+        branch: master
+    build-commands:
+      - sh autoconf.sh
+      - ./configure --prefix=/app
+      - make -j$(nproc)
+      - make install
+
+  - name: codium
+    buildsystem: simple
+    build-commands:
+      - install -Dm644 code.svg /app/share/icons/hicolor/scalable/apps/$FLATPAK_ID.svg
+      - install -Dm644 $FLATPAK_ID.metainfo.xml -t /app/share/metainfo
+      - ar x veriscode.deb
+      - tar xf data.tar.xz
+      - mv usr/share/veriscode /app/share/veriscode || mv usr/share/codium /app/share/veriscode
+      - mv /app/share/veriscode/veriscode /app/share/veriscode/$FLATPAK_ID 2>/dev/null || true
+      - install -Dm644 usr/share/applications/*.desktop /app/share/applications/$FLATPAK_ID.desktop
+      - desktop-file-edit --add-category="Education" --add-category="Development" /app/share/applications/$FLATPAK_ID.desktop
+      - rm -rf veriscode.deb control.tar.* data.tar.xz debian-binary usr
+    sources:
+      - type: file
+        url: https://github.com/alex-ha-192/veriscode/releases/latest/download/veriscode_amd64.deb
+        sha256: "0000000000000000000000000000000000000000000000000000000000000"
+        dest-filename: veriscode.deb
+        only-arches: [x86_64]
+      - type: file
+        url: https://raw.githubusercontent.com/VSCodium/vscodium/master/src/stable/resources/linux/code.svg
+        sha256: "e622e6bdb70b0cfec57ad9df8717ea023b87e5e215003119b5a1a4d059fcd347"
+      - type: file
+        path: com.veriscode.veriscode.metainfo.xml

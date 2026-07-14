@@ -1,0 +1,11 @@
+{
+  "_comment": "Pinned toolchain versions bundled into Veriscode installers. Update deliberately, not automatically - a bad Verible/Icarus build should never silently ship.",
+  "verible": {
+    "tag": "v0.0-4080-ga0a8d8eb",
+    "assets": {
+      "linux-x64": "verible-v0.0-4080-ga0a8d8eb-linux-static-x86_64.tar.gz",
+      "win32-x64": "verible-v0.0-4080-ga0a8d8eb-win64.zip"
+    },
+    "binaries": ["verible-verilog-lint", "verible-verilog-format", "verible-verilog-ls", "verible-verilog-syntax"]
+  }
+}

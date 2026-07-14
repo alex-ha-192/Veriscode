@@ -1,0 +1,286 @@
+// Webview client for the Veriscode interactive simulator. Plain DOM/JS by
+// design - no bundler, no framework - since this only ever runs inside a
+// single VS Code webview and the surface area is small.
+(function () {
+  const vscode = acquireVsCodeApi();
+
+  const CELL_W = 56;
+  const ROW_H = 30;
+  const WAVE_HIGH_Y = 6;
+  const WAVE_LOW_Y = ROW_H - 6;
+
+  /** @type {{module: any, steps: Record<string,string>[], clockPeriodNs: number, hasClock: boolean}} */
+  let state = { module: { name: "", ports: [] }, steps: [], clockPeriodNs: 10, hasClock: false };
+  /** @type {Array<{name:string, direction:string, width:number, values:string[]}>} */
+  let lastSignals = [];
+
+  const el = {
+    title: document.getElementById("title"),
+    subtitle: document.getElementById("subtitle"),
+    status: document.getElementById("status"),
+    errorLog: document.getElementById("errorLog"),
+    diagram: document.getElementById("diagram"),
+    addCycle: document.getElementById("addCycle"),
+    rerun: document.getElementById("rerun"),
+  };
+
+  el.addCycle.addEventListener("click", () => vscode.postMessage({ type: "addCycle" }));
+  el.rerun.addEventListener("click", () => vscode.postMessage({ type: "rerun" }));
+
+  window.addEventListener("message", (event) => {
+    const msg = event.data;
+    switch (msg.type) {
+      case "init":
+        state = msg.state;
+        lastSignals = [];
+        render();
+        break;
+      case "status":
+        setStatus(msg.message, msg.kind);
+        break;
+      case "result":
+        if (msg.result.ok) {
+          lastSignals = msg.result.signals;
+          setStatus(`Simulated ${state.steps.length} ${state.hasClock ? "cycles" : "steps"}`, "ok");
+          el.errorLog.style.display = "none";
+        } else {
+          setStatus("Simulation failed - see log below", "error");
+          el.errorLog.style.display = "block";
+          el.errorLog.textContent = msg.result.log;
+        }
+        renderValues();
+        break;
+      case "steps":
+        state.steps = msg.steps;
+        render();
+        break;
+    }
+  });
+
+  function setStatus(text, kind) {
+    el.status.textContent = text;
+    el.status.className = kind || "";
+  }
+
+  function valueAt(signalName, stepIndex) {
+    const sig = lastSignals.find((s) => s.name === signalName);
+    if (sig) return sig.values[stepIndex] ?? "x";
+    // No result yet: for inputs, show what's staged; outputs show unknown.
+    return state.steps[stepIndex]?.[signalName] ?? "x";
+  }
+
+  function render() {
+    el.title.textContent = state.module.name ? `module ${state.module.name}` : "No module";
+    el.subtitle.textContent = state.hasClock
+      ? `Clocked design - one column per clock cycle (${state.clockPeriodNs}ns period)`
+      : "Combinational design - one column per time step";
+
+    const n = state.steps.length;
+    el.diagram.innerHTML = "";
+    el.diagram.style.gridTemplateColumns = `180px repeat(${n}, ${CELL_W}px)`;
+
+    // Header row.
+    el.diagram.appendChild(makeDiv("row-label", ""));
+    for (let i = 0; i < n; i++) {
+      const header = makeDiv("header-cell", state.hasClock ? `cycle ${i}` : `t${i}`);
+      if (n > 1) {
+        const remove = document.createElement("span");
+        remove.className = "remove";
+        remove.textContent = "✕";
+        remove.title = "Remove this column";
+        remove.addEventListener("click", () => vscode.postMessage({ type: "removeStep", step: i }));
+        header.appendChild(remove);
+      }
+      el.diagram.appendChild(header);
+    }
+
+    const inputs = state.module.ports.filter((p) => p.direction === "input" && !p.isClockLike);
+    const outputs = state.module.ports.filter((p) => p.direction !== "input");
+    const clock = state.module.ports.find((p) => p.isClockLike && p.direction === "input");
+
+    if (clock) renderRow(clock, false);
+    for (const p of inputs) renderRow(p, true);
+    for (const p of outputs) renderRow(p, false);
+
+    renderValues();
+  }
+
+  function renderRow(port, editable) {
+    const label = makeDiv("row-label", "");
+    const nameSpan = document.createElement("span");
+    nameSpan.textContent = port.name;
+    const dir = document.createElement("span");
+    dir.className = `dir ${port.direction}`;
+    dir.textContent = port.width > 1 ? `${port.direction} [${port.width - 1}:0]` : port.direction;
+    label.appendChild(nameSpan);
+    label.appendChild(dir);
+    el.diagram.appendChild(label);
+
+    if (port.width === 1 && !editable) {
+      // Read-only 1-bit output: waveform trace, no edit affordances.
+      el.diagram.appendChild(makeWaveCell(port, false));
+    } else if (port.width === 1) {
+      el.diagram.appendChild(makeWaveCell(port, true));
+    } else {
+      const n = state.steps.length;
+      for (let i = 0; i < n; i++) {
+        el.diagram.appendChild(makeBusCell(port, i, editable));
+      }
+    }
+  }
+
+  function makeDiv(cls, text) {
+    const d = document.createElement("div");
+    d.className = cls;
+    if (text) d.textContent = text;
+    return d;
+  }
+
+  function makeBusCell(port, stepIndex, editable) {
+    const cell = document.createElement("div");
+    cell.className = "cell";
+    const inner = document.createElement("div");
+    inner.className = `bus-cell ${port.direction}` + (editable ? " editable" : "");
+    inner.dataset.signal = port.name;
+    inner.dataset.step = String(stepIndex);
+    inner.textContent = "…";
+    cell.appendChild(inner);
+    if (editable) {
+      inner.addEventListener("click", () => openInlineEditor(inner, port.name, stepIndex));
+    }
+    return cell;
+  }
+
+  function openInlineEditor(hostEl, signalName, stepIndex) {
+    const current = state.steps[stepIndex]?.[signalName] ?? "0";
+    const input = document.createElement("input");
+    input.className = "cell-edit-input";
+    input.value = current;
+    hostEl.textContent = "";
+    hostEl.appendChild(input);
+    input.focus();
+    input.select();
+    const commit = () => {
+      const value = input.value.trim() || "0";
+      vscode.postMessage({ type: "setValue", step: stepIndex, signal: signalName, value });
+    };
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") input.blur();
+      if (e.key === "Escape") {
+        input.value = current;
+        input.blur();
+      }
+    });
+    input.addEventListener("blur", commit, { once: true });
+  }
+
+  function makeWaveCell(port, editable) {
+    const n = state.steps.length;
+    const cell = document.createElement("div");
+    cell.className = "cell wave-row";
+    cell.style.gridColumn = `span ${n}`;
+    const width = n * CELL_W;
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("class", "wave");
+    svg.setAttribute("width", String(width));
+    svg.setAttribute("height", String(ROW_H));
+    svg.setAttribute("viewBox", `0 0 ${width} ${ROW_H}`);
+    svg.dataset.signal = port.name;
+    cell.appendChild(svg);
+    return cell;
+  }
+
+  function renderValues() {
+    // Bus cells.
+    document.querySelectorAll(".bus-cell").forEach((elm) => {
+      const div = /** @type {HTMLElement} */ (elm);
+      if (div.querySelector("input")) return; // mid-edit, don't clobber
+      const signal = div.dataset.signal;
+      const step = Number(div.dataset.step);
+      const value = valueAt(signal, step);
+      div.textContent = value;
+      div.classList.toggle("unknown", /[xz]/i.test(value));
+    });
+
+    // Wave (1-bit) rows.
+    document.querySelectorAll("svg.wave").forEach((elm) => {
+      const svg = /** @type {SVGSVGElement} */ (elm);
+      const signal = svg.dataset.signal;
+      const port = state.module.ports.find((p) => p.name === signal);
+      const editable = port && port.direction === "input" && !port.isClockLike;
+      drawWave(svg, signal, editable);
+    });
+  }
+
+  function drawWave(svg, signalName, editable) {
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    const n = state.steps.length;
+    const values = [];
+    for (let i = 0; i < n; i++) values.push(valueAt(signalName, i));
+
+    const port = state.module.ports.find((p) => p.name === signalName);
+    const isOutput = port && port.direction !== "input";
+
+    let d = "";
+    for (let i = 0; i < n; i++) {
+      const x0 = i * CELL_W;
+      const x1 = x0 + CELL_W;
+      const y = values[i] === "1" ? WAVE_HIGH_Y : WAVE_LOW_Y;
+      d += i === 0 ? `M ${x0} ${y} ` : ``;
+      const prevY = i === 0 ? y : values[i - 1] === "1" ? WAVE_HIGH_Y : WAVE_LOW_Y;
+      if (i > 0 && prevY !== y) {
+        d += `L ${x0} ${prevY} L ${x0} ${y} `;
+      } else if (i === 0) {
+        d += "";
+      }
+      d += `L ${x1} ${y} `;
+    }
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("class", "trace" + (isOutput ? " output" : ""));
+    path.setAttribute("d", d.trim());
+    svg.appendChild(path);
+
+    if (editable) {
+      for (let i = 0; i < n; i++) {
+        const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        rect.setAttribute("class", "hit editable");
+        rect.setAttribute("x", String(i * CELL_W));
+        rect.setAttribute("y", "0");
+        rect.setAttribute("width", String(CELL_W));
+        rect.setAttribute("height", String(ROW_H));
+        rect.addEventListener("click", () => openSvgEditor(svg, signalName, i));
+        svg.appendChild(rect);
+      }
+    }
+  }
+
+  function openSvgEditor(svg, signalName, stepIndex) {
+    const current = state.steps[stepIndex]?.[signalName] ?? "0";
+    const fo = document.createElementNS("http://www.w3.org/2000/svg", "foreignObject");
+    fo.setAttribute("x", String(stepIndex * CELL_W + 2));
+    fo.setAttribute("y", "2");
+    fo.setAttribute("width", String(CELL_W - 4));
+    fo.setAttribute("height", String(ROW_H - 4));
+    const input = document.createElement("input");
+    input.className = "cell-edit-input";
+    input.value = current;
+    fo.appendChild(input);
+    svg.appendChild(fo);
+    input.focus();
+    input.select();
+    const commit = () => {
+      const value = input.value.trim() || "0";
+      vscode.postMessage({ type: "setValue", step: stepIndex, signal: signalName, value });
+    };
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") input.blur();
+      if (e.key === "Escape") {
+        input.value = current;
+        input.blur();
+      }
+    });
+    input.addEventListener("blur", commit, { once: true });
+  }
+
+  vscode.postMessage({ type: "ready" });
+})();
