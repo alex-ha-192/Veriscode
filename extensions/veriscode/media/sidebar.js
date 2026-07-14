@@ -39,7 +39,7 @@
       const li = document.createElement("li");
       const width = port.width > 1 ? ` [${port.width - 1}:0]` : "";
       const resetBadge = port.resetPolarity
-        ? ` <span class="dir reset">reset (${port.resetPolarity})</span>`
+        ? ` <span class="dir reset">reset (${port.resetPolarity === "active-low" ? "low" : "high"})</span>`
         : "";
       li.innerHTML = `<span class="dir ${port.direction}">${port.direction}</span> ${port.name}${width}${resetBadge}`;
       el.portList.appendChild(li);

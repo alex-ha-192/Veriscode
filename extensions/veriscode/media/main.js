@@ -77,7 +77,7 @@
 
     const n = state.steps.length;
     el.diagram.innerHTML = "";
-    el.diagram.style.gridTemplateColumns = `180px repeat(${n}, ${CELL_W}px)`;
+    el.diagram.style.gridTemplateColumns = `190px repeat(${n}, ${CELL_W}px)`;
 
     // Header row.
     el.diagram.appendChild(makeDiv("row-label", ""));
@@ -122,7 +122,7 @@
         port.resetPolarity === "active-low"
           ? "Looks like an active-low reset: 0 = held in reset, 1 = running normally."
           : "Looks like an active-high reset: 1 = held in reset, 0 = running normally.";
-      reset.textContent = port.resetPolarity === "active-low" ? "reset (active-low)" : "reset (active-high)";
+      reset.textContent = port.resetPolarity === "active-low" ? "reset (low)" : "reset (high)";
       label.appendChild(reset);
     }
     el.diagram.appendChild(label);

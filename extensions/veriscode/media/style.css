@@ -101,6 +101,9 @@ button.secondary {
   gap: 6px;
   border-right: 1px solid var(--vscode-panel-border, #8884);
   white-space: nowrap;
+  /* Backstop: keep a long name/badge from spilling out of the label
+     column and over the waveform cells - clip at the border instead. */
+  overflow: hidden;
 }
 
 .row-label .dir {
