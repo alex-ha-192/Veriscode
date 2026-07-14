@@ -38,7 +38,10 @@
     for (const port of msg.module.ports) {
       const li = document.createElement("li");
       const width = port.width > 1 ? ` [${port.width - 1}:0]` : "";
-      li.innerHTML = `<span class="dir ${port.direction}">${port.direction}</span> ${port.name}${width}`;
+      const resetBadge = port.resetPolarity
+        ? ` <span class="dir reset">reset (${port.resetPolarity})</span>`
+        : "";
+      li.innerHTML = `<span class="dir ${port.direction}">${port.direction}</span> ${port.name}${width}${resetBadge}`;
       el.portList.appendChild(li);
     }
   }

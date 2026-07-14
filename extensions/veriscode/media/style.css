@@ -113,6 +113,7 @@ button.secondary {
 
 .dir.input { background: var(--vscode-charts-blue, #3794ff33); }
 .dir.output { background: var(--vscode-charts-green, #89d18533); }
+.dir.reset { background: var(--vscode-charts-orange, #d1892533); cursor: help; }
 
 .header-cell {
   font-size: 11px;

@@ -94,11 +94,12 @@
       el.diagram.appendChild(header);
     }
 
+    // The clock itself isn't shown - it's not editable and always samples
+    // as a flat "1" (see sampleTimeForStep), so a row for it conveys
+    // nothing beyond what the subtitle above already says.
     const inputs = state.module.ports.filter((p) => p.direction === "input" && !p.isClockLike);
     const outputs = state.module.ports.filter((p) => p.direction !== "input");
-    const clock = state.module.ports.find((p) => p.isClockLike && p.direction === "input");
 
-    if (clock) renderRow(clock, false);
     for (const p of inputs) renderRow(p, true);
     for (const p of outputs) renderRow(p, false);
 
@@ -114,6 +115,16 @@
     dir.textContent = port.width > 1 ? `${port.direction} [${port.width - 1}:0]` : port.direction;
     label.appendChild(nameSpan);
     label.appendChild(dir);
+    if (port.resetPolarity) {
+      const reset = document.createElement("span");
+      reset.className = "dir reset";
+      reset.title =
+        port.resetPolarity === "active-low"
+          ? "Looks like an active-low reset: 0 = held in reset, 1 = running normally."
+          : "Looks like an active-high reset: 1 = held in reset, 0 = running normally.";
+      reset.textContent = port.resetPolarity === "active-low" ? "reset (active-low)" : "reset (active-high)";
+      label.appendChild(reset);
+    }
     el.diagram.appendChild(label);
 
     if (port.width === 1 && !editable) {

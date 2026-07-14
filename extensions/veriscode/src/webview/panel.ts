@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { parseModule } from "../simulation/portParser";
 import { simulate } from "../simulation/icarusRunner";
+import { buildDefaultSteps } from "../simulation/defaultSteps";
 import { ParsedModule, SimStep } from "../simulation/types";
 
 interface ClientState {
@@ -205,19 +206,6 @@ export class SimulatorPanel {
 </body>
 </html>`;
   }
-}
-
-function buildDefaultSteps(module: ParsedModule, count: number): SimStep[] {
-  const inputs = module.ports.filter((p) => p.direction === "input" && !p.isClockLike);
-  const steps: SimStep[] = [];
-  for (let i = 0; i < count; i++) {
-    const step: SimStep = {};
-    for (const p of inputs) {
-      step[p.name] = "0";
-    }
-    steps.push(step);
-  }
-  return steps;
 }
 
 function getNonce(): string {

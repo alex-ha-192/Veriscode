@@ -2,6 +2,15 @@ import { ParsedModule, Port, PortDirection } from "./types";
 
 const CLOCK_NAME = /^(clk|clock)(_[a-z0-9]+)?$/i;
 
+// Best-effort reset detection, purely for picking sane *default* step
+// values (see buildDefaultSteps in webview/panel.ts) - never a hard
+// constraint, since every cell stays freely editable regardless. Any
+// name containing "rst"/"reset" counts as reset-like; a trailing "_n",
+// "n", or "_b" (bar) marks it active-low, matching common conventions
+// (rst_n, rstn, aresetn, reset_b); anything else defaults to active-high.
+const RESET_NAME = /rst|reset/i;
+const ACTIVE_LOW_SUFFIX = /(_n|_ni|_b|n)$/i;
+
 /**
  * Strips // and /* *\/ comments while preserving line structure (so later
  * line/col reasoning, if ever needed, stays accurate).
@@ -190,6 +199,11 @@ function parsePortDecl(
   const resolved = widthOfRange(packedRange, params);
   const width = resolved ?? UNRESOLVED_WIDTH_FALLBACK;
   const declRange = width > 1 ? `[${width - 1}:0]` : undefined;
+  const resetPolarity: Port["resetPolarity"] = RESET_NAME.test(name)
+    ? ACTIVE_LOW_SUFFIX.test(name)
+      ? "active-low"
+      : "active-high"
+    : undefined;
 
   return [
     {
@@ -200,6 +214,7 @@ function parsePortDecl(
       widthResolved: resolved !== null,
       declRange,
       isClockLike: CLOCK_NAME.test(name),
+      resetPolarity,
     },
   ];
 }
