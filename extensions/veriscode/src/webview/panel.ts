@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { parseModule } from "../simulation/portParser";
 import { simulate } from "../simulation/icarusRunner";
 import { buildDefaultSteps, backfillSteps } from "../simulation/defaultSteps";
+import { parseInstances, ModuleInstance } from "../simulation/instanceParser";
 import { ParsedModule, SimStep } from "../simulation/types";
 
 interface ClientState {
@@ -9,6 +10,8 @@ interface ClientState {
   steps: SimStep[];
   clockPeriodNs: number;
   hasClock: boolean;
+  /** Submodule instances found in the source, for the read-only diagram tab. */
+  instances: ModuleInstance[];
 }
 
 const CLOCK_PERIOD_NS = 10;
@@ -120,6 +123,7 @@ export class SimulatorPanel {
       steps: this.steps,
       clockPeriodNs: CLOCK_PERIOD_NS,
       hasClock: this.hasClock(),
+      instances: parseInstances(this.module.sourceText),
     };
   }
 
@@ -230,16 +234,26 @@ export class SimulatorPanel {
 <body>
   <h1 id="title">module</h1>
   <p class="subtitle" id="subtitle"></p>
-  <div class="toolbar">
-    <button id="addCycle">+ Cycle</button>
-    <button class="secondary" id="rerun">Re-run</button>
-    <span id="status"></span>
+  <div class="tabs">
+    <button class="tab active" id="tabTiming" data-tab="timing">Timing Diagram</button>
+    <button class="tab" id="tabSchematic" data-tab="schematic">Diagram</button>
   </div>
-  <pre id="errorLog"></pre>
-  <div class="diagram-scroll">
-    <div class="diagram" id="diagram"></div>
+  <div id="timingView">
+    <div class="toolbar">
+      <button id="addCycle">+ Cycle</button>
+      <button class="secondary" id="rerun">Re-run</button>
+      <span id="status"></span>
+    </div>
+    <pre id="errorLog"></pre>
+    <div class="diagram-scroll">
+      <div class="diagram" id="diagram"></div>
+    </div>
+    <p class="legend">Click any input cell to type a value (e.g. 0, 1, x, 4'hA, 3'b101). Outputs update automatically.</p>
   </div>
-  <p class="legend">Click any input cell to type a value (e.g. 0, 1, x, 4'hA, 3'b101). Outputs update automatically.</p>
+  <div id="schematicView" style="display:none">
+    <p class="legend">Drag boxes to rearrange. Hover a net name to highlight every place it's connected.</p>
+    <div class="schematic-canvas" id="schematicCanvas"></div>
+  </div>
   <script nonce="${nonce}" src="${scriptUri}"></script>
 </body>
 </html>`;

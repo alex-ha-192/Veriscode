@@ -45,6 +45,7 @@ jobs:
           node test/manual-perf.js
           node test/toolchain-fallback.js
           node test/default-steps.js
+          node test/instance-parser.js
 
       - name: Package extension (.vsix)
         run: |

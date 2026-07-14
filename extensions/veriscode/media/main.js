@@ -9,8 +9,8 @@
   const WAVE_HIGH_Y = 6;
   const WAVE_LOW_Y = ROW_H - 6;
 
-  /** @type {{module: any, steps: Record<string,string>[], clockPeriodNs: number, hasClock: boolean}} */
-  let state = { module: { name: "", ports: [] }, steps: [], clockPeriodNs: 10, hasClock: false };
+  /** @type {{module: any, steps: Record<string,string>[], clockPeriodNs: number, hasClock: boolean, instances: any[]}} */
+  let state = { module: { name: "", ports: [] }, steps: [], clockPeriodNs: 10, hasClock: false, instances: [] };
   /** @type {Array<{name:string, direction:string, width:number, values:string[]}>} */
   let lastSignals = [];
 
@@ -22,10 +22,26 @@
     diagram: document.getElementById("diagram"),
     addCycle: document.getElementById("addCycle"),
     rerun: document.getElementById("rerun"),
+    tabTiming: document.getElementById("tabTiming"),
+    tabSchematic: document.getElementById("tabSchematic"),
+    timingView: document.getElementById("timingView"),
+    schematicView: document.getElementById("schematicView"),
+    schematicCanvas: document.getElementById("schematicCanvas"),
   };
 
   el.addCycle.addEventListener("click", () => vscode.postMessage({ type: "addCycle" }));
   el.rerun.addEventListener("click", () => vscode.postMessage({ type: "rerun" }));
+
+  function selectTab(tab) {
+    const timing = tab === "timing";
+    el.tabTiming.classList.toggle("active", timing);
+    el.tabSchematic.classList.toggle("active", !timing);
+    el.timingView.style.display = timing ? "" : "none";
+    el.schematicView.style.display = timing ? "none" : "";
+    if (!timing) renderSchematic();
+  }
+  el.tabTiming.addEventListener("click", () => selectTab("timing"));
+  el.tabSchematic.addEventListener("click", () => selectTab("schematic"));
 
   window.addEventListener("message", (event) => {
     const msg = event.data;
@@ -104,6 +120,10 @@
     for (const p of outputs) renderRow(p, false);
 
     renderValues();
+
+    // Keep the diagram tab's content in sync even while it's hidden, so
+    // switching to it never shows stale data from before a save/reparse.
+    if (el.schematicView.style.display !== "none") renderSchematic();
   }
 
   function renderRow(port, editable) {
@@ -291,6 +311,185 @@
       }
     });
     input.addEventListener("blur", commit, { once: true });
+  }
+
+  // --- Diagram tab: a read-only structural view of the module and any
+  // submodules it instantiates, built from parsing the source (no live
+  // simulation values here - see instanceParser.ts for why this stays
+  // structure-only rather than trying to show internal signal values).
+  // Boxes are draggable purely for visual rearrangement; positions persist
+  // for the life of the panel, keyed by a stable box id.
+
+  /** @type {Record<string, {x: number, y: number}>} */
+  const boxPositions = {};
+
+  function ensurePosition(id, defaultX, defaultY) {
+    if (!boxPositions[id]) {
+      boxPositions[id] = { x: defaultX, y: defaultY };
+    }
+    return boxPositions[id];
+  }
+
+  function renderSchematic() {
+    const canvas = el.schematicCanvas;
+    canvas.innerHTML = "";
+
+    if (!state.module.name) {
+      canvas.appendChild(makeDiv("schematic-empty", "No module to show."));
+      return;
+    }
+
+    const topPorts = state.module.ports;
+    const topBox = makeSchematicBox("top", state.module.name, "top-level module", topPorts, true);
+    const topPos = ensurePosition("top", 20, 20);
+    positionBox(topBox, topPos);
+    canvas.appendChild(topBox);
+
+    if (state.instances.length === 0) {
+      const hint = makeDiv(
+        "schematic-empty",
+        "This module doesn't instantiate any submodules - it's a single block."
+      );
+      hint.style.position = "absolute";
+      hint.style.left = "20px";
+      hint.style.top = "140px";
+      canvas.appendChild(hint);
+    } else {
+      state.instances.forEach((inst, i) => {
+        const ports = Object.keys(inst.connections).map((portName) => ({
+          name: portName,
+          // We don't know the submodule's own port directions (its source
+          // isn't necessarily open/parsed) - shown neutrally instead of
+          // guessing input/output.
+          direction: "port",
+          width: 1,
+          netName: inst.connections[portName],
+        }));
+        const box = makeSchematicBox(
+          `inst:${inst.instanceName}`,
+          inst.instanceName,
+          inst.moduleType,
+          ports,
+          false
+        );
+        const pos = ensurePosition(`inst:${inst.instanceName}`, 320, 20 + i * 170);
+        positionBox(box, pos);
+        canvas.appendChild(box);
+      });
+    }
+
+    // Hovering any net-name label highlights every other label with the
+    // same net name, across every box - the "trace the wire" interaction
+    // that stands in for drawing an actual connecting line.
+    canvas.querySelectorAll(".net-name").forEach((elm) => {
+      elm.addEventListener("mouseenter", () => {
+        const net = elm.dataset.net;
+        canvas.querySelectorAll(`.net-name[data-net="${cssEscape(net)}"]`).forEach((m) => m.classList.add("highlight"));
+      });
+      elm.addEventListener("mouseleave", () => {
+        const net = elm.dataset.net;
+        canvas.querySelectorAll(`.net-name[data-net="${cssEscape(net)}"]`).forEach((m) => m.classList.remove("highlight"));
+      });
+    });
+  }
+
+  function cssEscape(value) {
+    return window.CSS && CSS.escape ? CSS.escape(value) : value.replace(/["\\]/g, "\\$&");
+  }
+
+  function positionBox(box, pos) {
+    box.style.left = `${pos.x}px`;
+    box.style.top = `${pos.y}px`;
+  }
+
+  function makeSchematicBox(id, title, subtitle, ports, isTop) {
+    const box = document.createElement("div");
+    box.className = "schematic-box" + (isTop ? " top" : "");
+    box.dataset.boxId = id;
+
+    const titleEl = document.createElement("div");
+    titleEl.className = "box-title";
+    titleEl.textContent = title + " ";
+    const sub = document.createElement("span");
+    sub.className = "box-subtitle";
+    sub.textContent = subtitle;
+    titleEl.appendChild(sub);
+    box.appendChild(titleEl);
+
+    for (const port of ports) {
+      const row = document.createElement("div");
+      row.className = "schematic-port-row";
+
+      const left = document.createElement("span");
+      if (port.direction === "input" || port.direction === "output") {
+        const dir = document.createElement("span");
+        dir.className = `dir ${port.direction}`;
+        dir.textContent = port.direction;
+        left.appendChild(dir);
+      }
+      const nameSpan = document.createElement("span");
+      nameSpan.className = "port-name";
+      nameSpan.textContent = port.name;
+      left.appendChild(nameSpan);
+      row.appendChild(left);
+
+      // Top-level ports are the net itself (their own name); instance
+      // ports show what net they're wired to.
+      const netLabel = document.createElement("span");
+      netLabel.className = "net-name";
+      const netName = isTop ? port.name : port.netName || "(unconnected)";
+      netLabel.textContent = netName;
+      netLabel.dataset.net = netName;
+      row.appendChild(netLabel);
+
+      box.appendChild(row);
+    }
+
+    makeDraggable(box, titleEl);
+    return box;
+  }
+
+  function makeDraggable(box, handle) {
+    let dragging = false;
+    let startX = 0;
+    let startY = 0;
+    let originX = 0;
+    let originY = 0;
+
+    handle.addEventListener("mousedown", (e) => {
+      dragging = true;
+      startX = e.clientX;
+      startY = e.clientY;
+      const rect = box.getBoundingClientRect();
+      const canvasRect = el.schematicCanvas.getBoundingClientRect();
+      originX = rect.left - canvasRect.left + el.schematicCanvas.scrollLeft;
+      originY = rect.top - canvasRect.top + el.schematicCanvas.scrollTop;
+      e.preventDefault();
+    });
+
+    window.addEventListener("mousemove", (e) => {
+      if (!dragging) return;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      const x = Math.max(0, originX + dx);
+      const y = Math.max(0, originY + dy);
+      box.style.left = `${x}px`;
+      box.style.top = `${y}px`;
+    });
+
+    window.addEventListener("mouseup", (e) => {
+      if (!dragging) return;
+      dragging = false;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      const x = Math.max(0, originX + dx);
+      const y = Math.max(0, originY + dy);
+      const id = box.dataset.boxId;
+      if (id && boxPositions[id]) {
+        boxPositions[id].x = x;
+        boxPositions[id].y = y;
+      }
+    });
   }
 
   vscode.postMessage({ type: "ready" });

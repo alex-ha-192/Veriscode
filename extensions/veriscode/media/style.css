@@ -189,3 +189,123 @@ svg.wave rect.hit.editable:hover { fill: var(--vscode-list-hoverBackground); opa
   opacity: 0.7;
   margin-top: 10px;
 }
+
+.tabs {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--vscode-panel-border, #8884);
+}
+
+button.tab {
+  background: transparent;
+  color: var(--vscode-foreground);
+  opacity: 0.65;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  padding: 6px 4px;
+  margin-right: 12px;
+  font-size: 12px;
+}
+
+button.tab:hover {
+  background: transparent;
+  opacity: 0.9;
+}
+
+button.tab.active {
+  opacity: 1;
+  border-bottom-color: var(--vscode-focusBorder, #007acc);
+  font-weight: 600;
+}
+
+.schematic-canvas {
+  position: relative;
+  min-height: 360px;
+  border: 1px solid var(--vscode-panel-border, #8884);
+  border-radius: 4px;
+  overflow: auto;
+  background:
+    linear-gradient(var(--vscode-panel-border, #8882) 1px, transparent 1px),
+    linear-gradient(90deg, var(--vscode-panel-border, #8882) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.schematic-box {
+  position: absolute;
+  min-width: 160px;
+  background: var(--vscode-editor-background);
+  border: 1px solid var(--vscode-panel-border, #8884);
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  user-select: none;
+}
+
+.schematic-box.top {
+  border-color: var(--vscode-focusBorder, #007acc);
+  border-width: 1.5px;
+}
+
+.schematic-box .box-title {
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--vscode-panel-border, #8884);
+  background: var(--vscode-list-hoverBackground, transparent);
+  border-radius: 6px 6px 0 0;
+  cursor: grab;
+}
+
+.schematic-box .box-title:active {
+  cursor: grabbing;
+}
+
+.schematic-box .box-subtitle {
+  font-size: 10px;
+  opacity: 0.6;
+  font-weight: 400;
+}
+
+.schematic-port-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 11px;
+  padding: 3px 10px;
+}
+
+.schematic-port-row .port-name {
+  opacity: 0.85;
+}
+
+.schematic-port-row .dir {
+  font-size: 9px;
+  text-transform: uppercase;
+  border-radius: 2px;
+  padding: 1px 4px;
+  opacity: 0.75;
+  margin-right: 6px;
+}
+
+.net-name {
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 11px;
+  padding: 0 3px;
+  border-radius: 2px;
+  cursor: default;
+}
+
+.net-name.highlight {
+  background: var(--vscode-editor-findMatchHighlightBackground, #ffd60088);
+  outline: 1px solid var(--vscode-focusBorder, #007acc);
+}
+
+.schematic-empty {
+  padding: 16px;
+  font-size: 12px;
+  opacity: 0.7;
+}

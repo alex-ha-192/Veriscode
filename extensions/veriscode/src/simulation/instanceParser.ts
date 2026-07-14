@@ -1,0 +1,100 @@
+import { stripComments } from "./portParser";
+
+export interface ModuleInstance {
+  /** The type of module being instantiated, e.g. "half_adder". */
+  moduleType: string;
+  /** The instance name, e.g. "ha0". */
+  instanceName: string;
+  /** Port name -> the expression connected to it, e.g. {a: "sum0"}. */
+  connections: Record<string, string>;
+}
+
+// Instantiation only ever appears at the structural (module) level, never
+// inside a procedural block - stripping begin/end (and function/task)
+// bodies first means the instance regex below never has to worry about
+// `unique case (...)`, `if (...)`, or similar looking superficially
+// similar ("word word (...)"). This also happens to be a correct
+// simplification, not just a safety net: SV genuinely disallows module
+// instantiation inside procedural code.
+function stripProceduralBlocks(text: string): string {
+  const BEGIN = /\bbegin\b/;
+  const END = /\bend\b/;
+  let result = text;
+  // Repeatedly remove the innermost begin..end pair until none remain -
+  // handles arbitrary nesting without a full tokenizer.
+  for (let guard = 0; guard < 1000; guard++) {
+    const beginMatches = [...result.matchAll(new RegExp(BEGIN, "g"))];
+    if (beginMatches.length === 0) break;
+
+    // Find an innermost pair: the last "begin" whose matching "end" comes
+    // before the next "begin" (i.e. no nested begin between them).
+    let removed = false;
+    for (let i = beginMatches.length - 1; i >= 0; i--) {
+      const beginIdx = beginMatches[i].index ?? -1;
+      if (beginIdx < 0) continue;
+      const afterBegin = result.slice(beginIdx + beginMatches[i][0].length);
+      const endMatch = END.exec(afterBegin);
+      if (!endMatch) continue;
+      const nextBeginInSpan = BEGIN.exec(afterBegin.slice(0, endMatch.index));
+      if (nextBeginInSpan) continue; // not innermost - a nested begin closes first
+      const endIdx = beginIdx + beginMatches[i][0].length + endMatch.index + endMatch[0].length;
+      result = result.slice(0, beginIdx) + " " + result.slice(endIdx);
+      removed = true;
+      break;
+    }
+    if (!removed) break;
+  }
+  // function..endfunction / task..endtask bodies (rare in this curriculum,
+  // but stripped for the same reason).
+  result = result.replace(/\bfunction\b[\s\S]*?\bendfunction\b/g, " ");
+  result = result.replace(/\btask\b[\s\S]*?\bendtask\b/g, " ");
+  return result;
+}
+
+const NOT_A_MODULE_TYPE = new Set([
+  "if", "else", "for", "while", "case", "casex", "casez", "unique", "priority",
+  "always", "always_ff", "always_comb", "always_latch", "initial", "final",
+  "assign", "wire", "logic", "reg", "input", "output", "inout", "parameter",
+  "localparam", "generate", "endgenerate", "module", "endmodule", "function",
+  "endfunction", "task", "endtask", "typedef", "struct", "enum", "packed",
+  "signed", "unsigned", "return",
+]);
+
+/**
+ * Finds module instantiations at the structural level of `moduleBodyText`
+ * (everything between the port list and `endmodule`). Deliberately a
+ * heuristic, not a full parser - used only to draw the read-only diagram
+ * view, never for simulation, so an occasional miss just means an
+ * instance doesn't show up in the picture rather than anything breaking.
+ */
+export function parseInstances(moduleBodyText: string): ModuleInstance[] {
+  const clean = stripProceduralBlocks(stripComments(moduleBodyText));
+  const instances: ModuleInstance[] = [];
+
+  // <ModuleType> [#(params)] <instanceName> ( .port(conn), .port2(conn2) ) ;
+  const INSTANCE = /\b([A-Za-z_]\w*)\s*(#\s*\([^;]*?\))?\s+([A-Za-z_]\w*)\s*\(((?:[^()]|\([^()]*\))*)\)\s*;/g;
+  let m: RegExpExecArray | null;
+  while ((m = INSTANCE.exec(clean)) !== null) {
+    const [, moduleType, , instanceName, portList] = m;
+    if (NOT_A_MODULE_TYPE.has(moduleType) || NOT_A_MODULE_TYPE.has(instanceName)) {
+      continue;
+    }
+    // Named port connections only (.port(conn)) - positional (Verilog-1995
+    // style) instantiation isn't supported, matching the rest of this
+    // codebase's "teaching subset" scope.
+    const connections: Record<string, string> = {};
+    const PORT_CONN = /\.(\w+)\s*\(\s*([^()]*?)\s*\)/g;
+    let pm: RegExpExecArray | null;
+    let anyNamedConnection = false;
+    while ((pm = PORT_CONN.exec(portList)) !== null) {
+      connections[pm[1]] = pm[2];
+      anyNamedConnection = true;
+    }
+    if (!anyNamedConnection) {
+      continue; // Not recognizably an instantiation (e.g. a plain function call).
+    }
+    instances.push({ moduleType, instanceName, connections });
+  }
+
+  return instances;
+}
