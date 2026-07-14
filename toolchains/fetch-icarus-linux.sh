@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Stages Icarus Verilog (from apt) into the veriscode-simulator extension's
+# Stages Icarus Verilog (from apt) into the veriscode extension's
 # bundled bin/linux-<arch>/ directory, so a single portable .vsix works
 # without the end user installing anything. Uses the same -B /
 # IVERILOG_VPI_MODULE_PATH relocation trick as the Windows/macOS fetch
@@ -17,7 +17,7 @@ case "$(uname -m)" in
   *) echo "error: unsupported Linux arch '$(uname -m)'" >&2; exit 1 ;;
 esac
 
-DEST="$REPO_ROOT/extensions/veriscode-simulator/bin/linux-$NODE_ARCH"
+DEST="$REPO_ROOT/extensions/veriscode/bin/linux-$NODE_ARCH"
 LIB_DEST="$DEST/lib"
 
 if ! command -v iverilog >/dev/null 2>&1; then

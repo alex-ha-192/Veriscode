@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Downloads the pinned Verible release and stages verible-verilog-lint,
 # verible-verilog-format, verible-verilog-ls and verible-verilog-syntax
-# into the veriscode-systemverilog extension's bundled bin/ directory, so
+# into the veriscode extension's bundled bin/ directory, so
 # packaged Veriscode installers never need the user to install Verible
 # themselves.
 #
@@ -18,7 +18,7 @@ MANIFEST="$SCRIPT_DIR/manifest.json"
 
 TAG=$(python3 -c "import json;print(json.load(open('$MANIFEST'))['verible']['tag'])")
 ASSET=$(python3 -c "import json;print(json.load(open('$MANIFEST'))['verible']['assets']['$TARGET'])")
-DEST="$REPO_ROOT/extensions/veriscode-systemverilog/bin/$TARGET"
+DEST="$REPO_ROOT/extensions/veriscode/bin/$TARGET"
 
 URL="https://github.com/chipsalliance/verible/releases/download/$TAG/$ASSET"
 WORK=$(mktemp -d)

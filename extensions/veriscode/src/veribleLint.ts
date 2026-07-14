@@ -1,6 +1,7 @@
 import * as cp from "child_process";
 import * as vscode from "vscode";
 import { resolveBinary } from "./toolchain";
+import { isSystemVerilogDoc } from "./isSystemVerilogDoc";
 
 // Tolerant parser for verible-verilog-lint's "file:line:col: message [rule]"
 // style output. We deliberately don't hard-require the trailing bracketed
@@ -50,7 +51,7 @@ export class VeribleLinter {
 
     const config = vscode.workspace.getConfiguration("veriscode.verible");
     const binPath = resolveBinary(
-      this.context,
+      this.context.extensionPath,
       "verible-verilog-lint",
       config.get<string>("path")
     );
@@ -112,10 +113,6 @@ export class VeribleLinter {
   }
 }
 
-export function isSystemVerilogDoc(document: vscode.TextDocument): boolean {
-  return document.languageId === "systemverilog" || document.languageId === "verilog";
-}
-
 class SpawnFailure extends Error {}
 class RunFailure extends Error {
   constructor(public readonly combinedOutput: string) {
@@ -147,7 +144,7 @@ export async function formatWithVerible(
   document: vscode.TextDocument
 ): Promise<string | undefined> {
   const config = vscode.workspace.getConfiguration("veriscode.verible");
-  const binPath = resolveBinary(context, "verible-verilog-format", config.get<string>("path"));
+  const binPath = resolveBinary(context.extensionPath, "verible-verilog-format", config.get<string>("path"));
   if (!binPath) {
     return undefined;
   }

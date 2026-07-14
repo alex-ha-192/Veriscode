@@ -1,6 +1,6 @@
 # Installs Icarus Verilog via Chocolatey on a Windows CI runner, then
 # copies the resulting binaries + support files (target .conf/.tgt files,
-# .vpi modules, MinGW runtime DLLs) into the veriscode-simulator extension's
+# .vpi modules, MinGW runtime DLLs) into the veriscode extension's
 # bundled bin/win32-x64/ directory, so the packaged Windows installer never
 # needs the end user to install anything themselves.
 #
@@ -22,7 +22,7 @@
 $ErrorActionPreference = "Stop"
 
 $RepoRoot = Resolve-Path "$PSScriptRoot\.."
-$Dest = Join-Path $RepoRoot "extensions\veriscode-simulator\bin\win32-x64"
+$Dest = Join-Path $RepoRoot "extensions\veriscode\bin\win32-x64"
 $LibDest = Join-Path $Dest "lib"
 New-Item -ItemType Directory -Force -Path $Dest | Out-Null
 New-Item -ItemType Directory -Force -Path $LibDest | Out-Null

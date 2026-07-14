@@ -7,33 +7,6 @@ in does not - outbound requests to `github.com` and Chocolatey are blocked
 there by an egress policy, `apt` and `registry.npmjs.org`/`pypi.org` are
 allowed).
 
-## Validated locally, with a real toolchain
-
-- **The simulation engine** (`extensions/veriscode-simulator/src/simulation/`):
-  port parsing (including parameterized widths like `[WIDTH-1:0]`),
-  testbench generation, VCD parsing, and sample-time alignment were run
-  end-to-end against a real `iverilog`/`vvp` (installed via `apt` in the
-  sandbox) for both a clocked design (`test/fixtures/counter.sv`) and a
-  combinational one (`test/fixtures/adder.sv`) - see
-  `test/manual-e2e*.js`, and `.github/workflows/ci.yml`, which runs the
-  same checks on every push.
-- **Both extensions compile cleanly** under `tsc --strict` and **package**
-  into valid `.vsix` files via `@vscode/vsce`. You can sideload these into
-  any existing VS Code or VSCodium install today - see the root README's
-  "Try it now" section - without waiting for a full Veriscode build.
-- The `-B`/`IVERILOG_VPI_MODULE_PATH` relocation handling in
-  `icarusRunner.ts` (based on a documented Icarus Verilog portability
-  issue, steveicarus/iverilog#1344) was **verified for real**, not just
-  compiled: `toolchains/fetch-icarus-linux.sh` copied the sandbox's
-  `iverilog`/`vvp`/support-directory out of `/usr/bin` and `/usr/lib` into
-  the extension's `bin/linux-x64/` layout, the original `/usr/bin`
-  binaries were then deleted entirely, and the simulation engine's test
-  suite still passed using only the relocated copy. The Windows/macOS
-  legs (`fetch-icarus-windows.ps1`, `fetch-icarus-macos.sh`) use the
-  identical mechanism but couldn't be exercised the same way here (no
-  Windows/macOS runner, no Chocolatey/Homebrew network access in this
-  sandbox).
-
 ## Fixed after the first real CI run
 
 Two layout guesses turned out wrong once actually run on real Windows/macOS
@@ -62,7 +35,7 @@ searching for content instead of assuming a name/structure:
 
 ## Validated with a real toolchain
 
-- **The simulation engine** (`extensions/veriscode-simulator/src/simulation/`):
+- **The simulation engine** (`extensions/veriscode/src/simulation/`):
   port parsing (including parameterized widths like `[WIDTH-1:0]`),
   testbench generation, VCD parsing, and sample-time alignment were run
   end-to-end against a real `iverilog`/`vvp` (installed via `apt` in the
@@ -70,10 +43,10 @@ searching for content instead of assuming a name/structure:
   combinational one (`test/fixtures/adder.sv`) - see
   `test/manual-e2e*.js`, and `.github/workflows/ci.yml`, which runs the
   same checks on every push, on both amd64 and arm64 Linux runners.
-- **Both extensions compile cleanly** under `tsc --strict` and **package**
-  into valid `.vsix` files via `@vscode/vsce`. You can sideload these into
-  any existing VS Code or VSCodium install today - see the root README's
-  "Try it now" section - without waiting for a full Veriscode build.
+- **The extension compiles cleanly** under `tsc --strict` and **packages**
+  into a valid `.vsix` via `@vscode/vsce`. You can sideload this into any
+  existing VS Code or VSCodium install today - see the root README's
+  "Try it now" section - without waiting for the CI-built bundled build.
 - The `-B`/`IVERILOG_VPI_MODULE_PATH` relocation handling in
   `icarusRunner.ts` (based on a documented Icarus Verilog portability
   issue, steveicarus/iverilog#1344) was **verified for real**, not just

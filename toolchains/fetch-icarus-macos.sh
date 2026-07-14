@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Stages Icarus Verilog (from Homebrew) into the veriscode-simulator
+# Stages Icarus Verilog (from Homebrew) into the veriscode
 # extension's bundled bin/darwin-<arch>/ directory, using the same -B /
 # IVERILOG_VPI_MODULE_PATH relocation trick as the Linux/Windows fetch
 # scripts (see icarusRunner.ts) - Homebrew's iverilog also bakes in
@@ -16,7 +16,7 @@ case "$ARCH" in
   *) echo "error: unsupported macOS arch '$ARCH'" >&2; exit 1 ;;
 esac
 
-DEST="$REPO_ROOT/extensions/veriscode-simulator/bin/darwin-$NODE_ARCH"
+DEST="$REPO_ROOT/extensions/veriscode/bin/darwin-$NODE_ARCH"
 LIB_DEST="$DEST/lib"
 
 if ! command -v iverilog >/dev/null 2>&1; then

@@ -1,0 +1,171 @@
+{
+  "name": "veriscode",
+  "displayName": "Veriscode",
+  "description": "SystemVerilog syntax highlighting and Verible linting/formatting, plus project scaffolding and an interactive, cycle-by-cycle simulator (Icarus Verilog under the hood) with a live timing diagram.",
+  "version": "0.1.0",
+  "publisher": "veriscode",
+  "license": "MIT",
+  "private": true,
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": ["Programming Languages", "Linters", "Formatters", "Debuggers", "Education"],
+  "activationEvents": [
+    "onLanguage:systemverilog",
+    "onLanguage:verilog",
+    "onCommand:veriscode.newProject",
+    "onCommand:veriscode.simulate",
+    "onView:veriscode.home"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "systemverilog",
+        "aliases": ["SystemVerilog", "systemverilog"],
+        "extensions": [".sv", ".svh"],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "./icons/sv-light.svg",
+          "dark": "./icons/sv-dark.svg"
+        }
+      },
+      {
+        "id": "verilog",
+        "aliases": ["Verilog", "verilog"],
+        "extensions": [".v", ".vh"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "systemverilog",
+        "scopeName": "source.systemverilog",
+        "path": "./syntaxes/systemverilog.tmLanguage.json"
+      },
+      {
+        "language": "verilog",
+        "scopeName": "source.systemverilog",
+        "path": "./syntaxes/systemverilog.tmLanguage.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "veriscode.newProject",
+        "title": "New SystemVerilog Project",
+        "shortTitle": "SystemVerilog Project",
+        "category": "Veriscode"
+      },
+      {
+        "command": "veriscode.simulate",
+        "title": "Simulate",
+        "category": "Veriscode",
+        "icon": "$(play)"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "veriscode",
+          "title": "Veriscode",
+          "icon": "media/activity-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "veriscode": [
+        {
+          "type": "webview",
+          "id": "veriscode.home",
+          "name": "Veriscode"
+        }
+      ]
+    },
+    "menus": {
+      "editor/title": [
+        {
+          "command": "veriscode.simulate",
+          "when": "resourceLangId == systemverilog || resourceLangId == verilog",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        { "command": "veriscode.newProject" },
+        {
+          "command": "veriscode.simulate",
+          "when": "resourceLangId == systemverilog || resourceLangId == verilog"
+        }
+      ],
+      "file/newFile": [
+        {
+          "command": "veriscode.newProject",
+          "group": "file"
+        }
+      ]
+    },
+    "configuration": [
+      {
+        "title": "Veriscode: Verible",
+        "properties": {
+          "veriscode.verible.lintOnSave": {
+            "type": "boolean",
+            "default": true,
+            "description": "Run verible-verilog-lint whenever a SystemVerilog file is saved."
+          },
+          "veriscode.verible.lintOnType": {
+            "type": "boolean",
+            "default": true,
+            "description": "Run verible-verilog-lint (debounced) as you type."
+          },
+          "veriscode.verible.formatOnSave": {
+            "type": "boolean",
+            "default": false,
+            "description": "Run verible-verilog-format on save."
+          },
+          "veriscode.verible.path": {
+            "type": "string",
+            "default": "",
+            "description": "Override path to the verible-verilog-lint binary. Leave blank to use the bundled copy."
+          },
+          "veriscode.verible.disabledRules": {
+            "type": "array",
+            "items": { "type": "string" },
+            "default": [],
+            "description": "Verible lint rules to disable, e.g. \"line-length\"."
+          }
+        }
+      },
+      {
+        "title": "Veriscode: Simulator",
+        "properties": {
+          "veriscode.simulator.icarusPath": {
+            "type": "string",
+            "default": "",
+            "description": "Override path to the iverilog binary. Leave blank to use the bundled copy."
+          },
+          "veriscode.simulator.vvpPath": {
+            "type": "string",
+            "default": "",
+            "description": "Override path to the vvp binary. Leave blank to use the bundled copy."
+          },
+          "veriscode.simulator.defaultCycles": {
+            "type": "number",
+            "default": 8,
+            "description": "Number of clock cycles (or steps, for combinational designs) shown when a simulation first opens."
+          }
+        }
+      }
+    ]
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -w -p ./",
+    "package": "npx @vscode/vsce package --no-dependencies -o ../../dist/"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^20.14.9",
+    "@types/vscode": "^1.90.0",
+    "typescript": "^5.5.4"
+  }
+}
