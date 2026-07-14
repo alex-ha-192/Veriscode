@@ -2,9 +2,12 @@ import * as vscode from "vscode";
 import { newProjectCommand } from "./newProject";
 import { SimulateCodeLensProvider } from "./simulateCodeLens";
 import { SimulatorPanel } from "./webview/panel";
+import { SidebarViewProvider } from "./webview/sidebarView";
 
 export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider(SidebarViewProvider.viewType, new SidebarViewProvider(context)),
+
     vscode.commands.registerCommand("veriscode.newProject", () => newProjectCommand(context)),
 
     vscode.commands.registerCommand("veriscode.simulate", async (uri?: vscode.Uri) => {

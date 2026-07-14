@@ -14,23 +14,43 @@
     "onLanguage:systemverilog",
     "onLanguage:verilog",
     "onCommand:veriscode.newProject",
-    "onCommand:veriscode.simulate"
+    "onCommand:veriscode.simulate",
+    "onView:veriscode.home"
   ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
         "command": "veriscode.newProject",
-        "title": "Veriscode: New SystemVerilog Project",
+        "title": "New SystemVerilog Project",
+        "shortTitle": "SystemVerilog Project",
         "category": "Veriscode"
       },
       {
         "command": "veriscode.simulate",
-        "title": "Veriscode: Simulate",
+        "title": "Simulate",
         "category": "Veriscode",
         "icon": "$(play)"
       }
     ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "veriscode",
+          "title": "Veriscode",
+          "icon": "media/activity-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "veriscode": [
+        {
+          "type": "webview",
+          "id": "veriscode.home",
+          "name": "Veriscode"
+        }
+      ]
+    },
     "menus": {
       "editor/title": [
         {
@@ -44,6 +64,12 @@
         {
           "command": "veriscode.simulate",
           "when": "resourceLangId == systemverilog || resourceLangId == verilog"
+        }
+      ],
+      "file/newFile": [
+        {
+          "command": "veriscode.newProject",
+          "group": "file"
         }
       ]
     },

@@ -22,11 +22,17 @@ allowed).
   any existing VS Code or VSCodium install today - see the root README's
   "Try it now" section - without waiting for a full Veriscode build.
 - The `-B`/`IVERILOG_VPI_MODULE_PATH` relocation handling in
-  `icarusRunner.ts` is based on a documented Icarus Verilog portability
-  issue (steveicarus/iverilog#1344); the *code path* compiles and the
-  non-bundled fallback path is exercised by the tests above, but the
-  bundled-Windows-binary path itself can only be verified once
-  `fetch-icarus-windows.ps1` has actually run on a Windows CI runner.
+  `icarusRunner.ts` (based on a documented Icarus Verilog portability
+  issue, steveicarus/iverilog#1344) was **verified for real**, not just
+  compiled: `toolchains/fetch-icarus-linux.sh` copied the sandbox's
+  `iverilog`/`vvp`/support-directory out of `/usr/bin` and `/usr/lib` into
+  the extension's `bin/linux-x64/` layout, the original `/usr/bin`
+  binaries were then deleted entirely, and the simulation engine's test
+  suite still passed using only the relocated copy. The Windows/macOS
+  legs (`fetch-icarus-windows.ps1`, `fetch-icarus-macos.sh`) use the
+  identical mechanism but couldn't be exercised the same way here (no
+  Windows/macOS runner, no Chocolatey/Homebrew network access in this
+  sandbox).
 
 ## Written from research, not yet run end-to-end
 
