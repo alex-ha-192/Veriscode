@@ -100,14 +100,34 @@ function formatBinary(bits: string): string {
 }
 
 /**
- * Samples the value of each variable at (or immediately before) each of the
- * requested `sampleTimesNs`, returning one value string per sample time.
+ * Groups changes by signal id, each list sorted by time - computed once
+ * per simulation run so sampleSignal() (called once per port) does a Map
+ * lookup instead of re-filtering and re-sorting the *entire* change list
+ * for every single port.
  */
-export function sampleSignal(parsed: ParsedVcd, varId: string, sampleTimesNs: number[]): string[] {
-  const changesForVar = parsed.changes
-    .filter((c) => c.id === varId)
-    .sort((a, b) => a.timeNs - b.timeNs);
+export function groupChangesById(changes: VcdChange[]): Map<string, VcdChange[]> {
+  const grouped = new Map<string, VcdChange[]>();
+  for (const c of changes) {
+    const list = grouped.get(c.id);
+    if (list) {
+      list.push(c);
+    } else {
+      grouped.set(c.id, [c]);
+    }
+  }
+  for (const list of grouped.values()) {
+    list.sort((a, b) => a.timeNs - b.timeNs);
+  }
+  return grouped;
+}
 
+/**
+ * Samples one signal's time-sorted change list at (or immediately before)
+ * each of the requested `sampleTimesNs`, returning one value string per
+ * sample time. `sampleTimesNs` must be non-decreasing (true of every
+ * caller here: sample times are generated in step order).
+ */
+export function sampleSignal(changesForVar: VcdChange[], sampleTimesNs: number[]): string[] {
   const result: string[] = [];
   let cursor = 0;
   let lastValue = "x";

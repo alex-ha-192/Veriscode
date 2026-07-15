@@ -222,8 +222,10 @@
   }
 
   function renderValues() {
-    // Bus cells.
-    document.querySelectorAll(".bus-cell").forEach((elm) => {
+    // Bus cells. Scoped to the diagram grid, not the whole document - this
+    // runs after every simulation result, so there's no reason to have it
+    // walk unrelated parts of the page (the schematic tab, toolbar, etc).
+    el.diagram.querySelectorAll(".bus-cell").forEach((elm) => {
       const div = /** @type {HTMLElement} */ (elm);
       if (div.querySelector("input")) return; // mid-edit, don't clobber
       const signal = div.dataset.signal;
@@ -234,7 +236,7 @@
     });
 
     // Wave (1-bit) rows.
-    document.querySelectorAll("svg.wave").forEach((elm) => {
+    el.diagram.querySelectorAll("svg.wave").forEach((elm) => {
       const svg = /** @type {SVGSVGElement} */ (elm);
       const signal = svg.dataset.signal;
       const port = state.module.ports.find((p) => p.name === signal);

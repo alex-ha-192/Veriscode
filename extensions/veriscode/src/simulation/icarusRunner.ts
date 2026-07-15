@@ -4,7 +4,7 @@ import * as os from "os";
 import * as path from "path";
 import { resolveBinary, resolveBundledPlatformDir } from "../toolchain";
 import { generateTestbench, sampleTimeForStep } from "./testbenchGenerator";
-import { parseVcd, sampleSignal } from "./vcdParser";
+import { parseVcd, sampleSignal, groupChangesById } from "./vcdParser";
 import { ParsedModule, SimStep, SimulationResult, WaveformSignal } from "./types";
 
 export interface IcarusPaths {
@@ -130,18 +130,20 @@ export async function simulate(
 
     const vcdText = fs.readFileSync(vcdPath, "utf8");
     const parsed = parseVcd(vcdText);
+    const changesByVar = groupChangesById(parsed.changes);
+    const varsByName = new Map(parsed.vars.map((v) => [v.name, v]));
 
     const sampleTimes = steps.map((_, i) => sampleTimeForStep(i, module, clockPeriodNs));
 
     const signals: WaveformSignal[] = [];
     for (const port of module.ports) {
-      const vcdVar = parsed.vars.find((v) => v.name === port.name);
+      const vcdVar = varsByName.get(port.name);
       if (!vcdVar) continue;
       signals.push({
         name: port.name,
         direction: port.direction,
         width: port.width,
-        values: sampleSignal(parsed, vcdVar.id, sampleTimes),
+        values: sampleSignal(changesByVar.get(vcdVar.id) ?? [], sampleTimes),
       });
     }
 
