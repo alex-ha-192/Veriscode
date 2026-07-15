@@ -5,6 +5,7 @@ import { buildDefaultSteps, backfillSteps } from "../simulation/defaultSteps";
 import { parseInstances, ModuleInstance } from "../simulation/instanceParser";
 import { ParsedModule, SimStep } from "../simulation/types";
 import { getNonce, contentSecurityPolicy } from "./webviewUtils";
+import { DisposableWebviewPanel } from "./disposableWebviewPanel";
 
 interface ClientState {
   module: { name: string; ports: ParsedModule["ports"] };
@@ -24,13 +25,11 @@ const CLOCK_PERIOD_NS = 10;
 // about the runs themselves being slow.
 const SET_VALUE_DEBOUNCE_MS = 150;
 
-export class SimulatorPanel {
+export class SimulatorPanel extends DisposableWebviewPanel {
   private static readonly panels = new Map<string, SimulatorPanel>();
 
-  private readonly panel: vscode.WebviewPanel;
   private module: ParsedModule;
   private steps: SimStep[];
-  private disposed = false;
   // Monotonic token so that if edits queue several simulations, a slow
   // earlier run can't overwrite the result of a newer one that finished
   // first (each simulate() call is an independent iverilog+vvp process).
@@ -77,7 +76,6 @@ export class SimulatorPanel {
     SimulatorPanel.panels.set(key, instance);
     panel.onDidDispose(() => {
       SimulatorPanel.panels.delete(key);
-      instance.disposed = true;
     });
   }
 
@@ -88,7 +86,7 @@ export class SimulatorPanel {
     module: ParsedModule,
     defaultCycles: number
   ) {
-    this.panel = panel;
+    super(panel);
     this.module = module;
     this.steps = buildDefaultSteps(module, Math.max(1, defaultCycles));
     this.panel.webview.html = this.renderHtml();
@@ -110,12 +108,6 @@ export class SimulatorPanel {
 
   private hasClock(): boolean {
     return this.module.ports.some((p) => p.isClockLike && p.direction === "input");
-  }
-
-  private post(message: unknown): void {
-    if (!this.disposed) {
-      void this.panel.webview.postMessage(message);
-    }
   }
 
   private clientState(): ClientState {
