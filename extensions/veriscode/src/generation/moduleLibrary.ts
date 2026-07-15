@@ -1,6 +1,6 @@
 import * as fs from "fs";
-import * as path from "path";
 import { parseModule } from "../simulation/portParser";
+import { listSvFiles } from "../simulation/svFiles";
 import { ParsedModule } from "../simulation/types";
 
 export interface LibraryModule {
@@ -18,15 +18,8 @@ export interface LibraryModule {
  * step, so a stray non-module file just doesn't show up.
  */
 export function listModulesInFolder(folder: string): LibraryModule[] {
-  let entries: string[];
-  try {
-    entries = fs.readdirSync(folder);
-  } catch {
-    return [];
-  }
   const modules: LibraryModule[] = [];
-  for (const entry of entries.filter((f) => /\.(sv|v)$/i.test(f)).sort()) {
-    const filePath = path.join(folder, entry);
+  for (const filePath of listSvFiles(folder)) {
     let text: string;
     try {
       text = fs.readFileSync(filePath, "utf8");

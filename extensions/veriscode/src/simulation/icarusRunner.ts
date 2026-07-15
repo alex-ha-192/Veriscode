@@ -5,6 +5,7 @@ import * as path from "path";
 import { resolveBinary, resolveBundledPlatformDir } from "../toolchain";
 import { generateTestbench, sampleTimeForStep } from "./testbenchGenerator";
 import { parseVcd, sampleSignal, groupChangesById } from "./vcdParser";
+import { listSvFiles } from "./svFiles";
 import { ParsedModule, SimStep, SimulationResult, WaveformSignal } from "./types";
 
 export interface IcarusPaths {
@@ -26,17 +27,7 @@ export interface IcarusPaths {
  */
 function siblingSources(modulePath: string): string[] {
   const dir = path.dirname(modulePath);
-  let entries: string[];
-  try {
-    entries = fs.readdirSync(dir);
-  } catch {
-    return [];
-  }
-  return entries
-    .filter((f) => /\.(sv|v)$/i.test(f))
-    .map((f) => path.join(dir, f))
-    .filter((p) => path.resolve(p) !== path.resolve(modulePath))
-    .sort();
+  return listSvFiles(dir).filter((p) => path.resolve(p) !== path.resolve(modulePath));
 }
 
 /**
