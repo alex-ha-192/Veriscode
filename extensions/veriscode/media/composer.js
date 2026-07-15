@@ -18,7 +18,7 @@
 
   /** @type {Record<string, {x:number, y:number}>} */
   const boxPositions = {};
-  const { ensurePosition, positionBox, makeDraggable } = window.VeriscodeSchematic;
+  const { ensurePosition, positionBox, makeDraggable, makeRemoveButton } = window.VeriscodeSchematic;
 
   const el = {
     subtitle: document.getElementById("subtitle"),
@@ -131,18 +131,6 @@
     };
   }
 
-  function makeRemoveButton(onClick) {
-    const btn = document.createElement("span");
-    btn.className = "box-remove";
-    btn.textContent = "✕";
-    btn.title = "Remove";
-    btn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      onClick();
-    });
-    return btn;
-  }
-
   function renderTopBox() {
     const box = document.createElement("div");
     box.className = "schematic-box top composer-top-box";
@@ -198,7 +186,7 @@
       row.appendChild(nameInput);
       row.appendChild(dirSelect);
       row.appendChild(widthInput);
-      row.appendChild(makeRemoveButton(() => removeTopPort(port.id)));
+      row.appendChild(makeRemoveButton("box-remove", "Remove", () => removeTopPort(port.id)));
       box.appendChild(row);
     }
 
@@ -229,7 +217,7 @@
 
     titleEl.appendChild(nameInput);
     titleEl.appendChild(sub);
-    titleEl.appendChild(makeRemoveButton(() => removeInstance(inst.id)));
+    titleEl.appendChild(makeRemoveButton("box-remove", "Remove", () => removeInstance(inst.id)));
     box.appendChild(titleEl);
 
     for (const port of inst.ports) {

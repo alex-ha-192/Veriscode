@@ -1,8 +1,10 @@
-// Shared drag-and-position logic for the two schematic-style canvases
-// (the read-only Logical Schematic tab in main.js, and the editable
-// canvas in composer.js). Both keep their own {id -> {x,y}} position
-// store and call these free functions against it, so dragging behaves
-// identically in both places without duplicating the mouse-tracking code.
+// Shared DOM helpers for the two schematic-style canvases (the read-only
+// Logical Schematic tab in main.js, and the editable canvas in
+// composer.js): drag-and-position logic, plus the small "removable ✕
+// button" pattern both use. Position tracking: each caller keeps its own
+// {id -> {x,y}} store and calls these free functions against it, so
+// dragging behaves identically in both places without duplicating the
+// mouse-tracking code.
 (function () {
   function ensurePosition(store, id, defaultX, defaultY) {
     if (!store[id]) {
@@ -57,5 +59,18 @@
     });
   }
 
-  window.VeriscodeSchematic = { ensurePosition, positionBox, makeDraggable };
+  /** A small "✕" affordance that stops its click from bubbling (so it works inside a draggable title bar) before calling onClick. */
+  function makeRemoveButton(className, title, onClick) {
+    const btn = document.createElement("span");
+    btn.className = className;
+    btn.textContent = "✕";
+    btn.title = title;
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      onClick();
+    });
+    return btn;
+  }
+
+  window.VeriscodeSchematic = { ensurePosition, positionBox, makeDraggable, makeRemoveButton };
 })();
