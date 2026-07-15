@@ -69,7 +69,14 @@ searching for content instead of assuming a name/structure:
   `panel.ts`) so a burst of rapid clicks collapses into one simulate()
   call rather than one per click - at ~15ms/run the debounce is about not
   wasting CPU on soon-superseded results, not about any single run being
-  slow.
+  slow. The `iverilog`+`vvp` process spawn dominates that ~15ms by a wide
+  margin, so within-process work isn't where time actually goes for this
+  curriculum's tiny designs - but `vcdParser.sampleSignal()` was still
+  fixed to stop being an accidental O(ports × changes) pattern (each port
+  used to `.filter()` + `.sort()` the *entire* VCD change list; changes
+  are now grouped by signal id once per run in `groupChangesById()`, so
+  each port is an O(1) lookup) - correct scaling matters more as designs
+  grow, even when it's not the current bottleneck.
 
 ## Still unverified
 

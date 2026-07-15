@@ -4,6 +4,7 @@ import * as vscode from "vscode";
 import { LibraryModule } from "../generation/moduleLibrary";
 import { ComposerSpec, generateTopModule, validateComposerSpec } from "../generation/topGenerator";
 import { getNonce, contentSecurityPolicy } from "./webviewUtils";
+import { DisposableWebviewPanel } from "./disposableWebviewPanel";
 
 interface ClientLibraryModule {
   name: string;
@@ -24,11 +25,8 @@ interface ClientState {
  * read-only Logical Schematic view in the simulator panel - that one
  * visualizes an existing module's structure, this one produces a new file.
  */
-export class ComposerPanel {
+export class ComposerPanel extends DisposableWebviewPanel {
   private static current: ComposerPanel | undefined;
-
-  private readonly panel: vscode.WebviewPanel;
-  private disposed = false;
 
   static async show(context: vscode.ExtensionContext, folder: string, library: LibraryModule[]): Promise<void> {
     if (ComposerPanel.current && !ComposerPanel.current.disposed) {
@@ -51,7 +49,6 @@ export class ComposerPanel {
     const instance = new ComposerPanel(context, panel, folder, library);
     ComposerPanel.current = instance;
     panel.onDidDispose(() => {
-      instance.disposed = true;
       if (ComposerPanel.current === instance) {
         ComposerPanel.current = undefined;
       }
@@ -64,7 +61,7 @@ export class ComposerPanel {
     private folder: string,
     private library: LibraryModule[]
   ) {
-    this.panel = panel;
+    super(panel);
     this.panel.webview.html = this.renderHtml();
     this.panel.webview.onDidReceiveMessage((msg) => this.handleMessage(msg));
   }
@@ -73,12 +70,6 @@ export class ComposerPanel {
     this.folder = folder;
     this.library = library;
     this.post({ type: "init", state: this.clientState() });
-  }
-
-  private post(message: unknown): void {
-    if (!this.disposed) {
-      void this.panel.webview.postMessage(message);
-    }
   }
 
   private clientState(): ClientState {

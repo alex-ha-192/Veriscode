@@ -51,10 +51,9 @@ const DIRECTION_KEYWORD: Record<PortDirection, string> = {
  * source of truth for whether the wiring is actually correct.
  */
 export function generateTopModule(spec: ComposerSpec): string {
-  const portLines = spec.topPorts.map((p, i) => {
-    const comma = i < spec.topPorts.length - 1 ? "," : "";
-    return `  ${DIRECTION_KEYWORD[p.direction]} logic ${declRange(p.width)}${p.name}${comma}`;
-  });
+  const portLines = spec.topPorts.map(
+    (p) => `  ${DIRECTION_KEYWORD[p.direction]} logic ${declRange(p.width)}${p.name}`
+  );
 
   const topPortNames = new Set(spec.topPorts.map((p) => p.name));
 
@@ -87,16 +86,12 @@ export function generateTopModule(spec: ComposerSpec): string {
   }
 
   const instanceBlocks = spec.instances.map((inst) => {
-    const connLines = inst.connections.map((conn, i) => {
-      const net = conn.netName.trim();
-      const comma = i < inst.connections.length - 1 ? "," : "";
-      return `    .${conn.portName}(${net})${comma}`;
-    });
-    const body = connLines.length > 0 ? `\n${connLines.join("\n")}\n  ` : "";
+    const connLines = inst.connections.map((conn) => `    .${conn.portName}(${conn.netName.trim()})`);
+    const body = connLines.length > 0 ? `\n${connLines.join(",\n")}\n  ` : "";
     return `  ${inst.moduleType} ${inst.instanceName} (${body});`;
   });
 
-  const parts = [`module ${spec.topName} (`, portLines.join("\n"), ");"];
+  const parts = [`module ${spec.topName} (`, portLines.join(",\n"), ");"];
   if (netDeclLines.length > 0) {
     parts.push("", netDeclLines.join("\n"));
   }

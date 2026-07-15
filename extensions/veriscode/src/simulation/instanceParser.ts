@@ -17,32 +17,30 @@ export interface ModuleInstance {
 // simplification, not just a safety net: SV genuinely disallows module
 // instantiation inside procedural code.
 function stripProceduralBlocks(text: string): string {
-  const BEGIN = /\bbegin\b/;
-  const END = /\bend\b/;
-  let result = text;
-  // Repeatedly remove the innermost begin..end pair until none remain -
-  // handles arbitrary nesting without a full tokenizer.
-  for (let guard = 0; guard < 1000; guard++) {
-    const beginMatches = [...result.matchAll(new RegExp(BEGIN, "g"))];
-    if (beginMatches.length === 0) break;
-
-    // Find an innermost pair: the last "begin" whose matching "end" comes
-    // before the next "begin" (i.e. no nested begin between them).
-    let removed = false;
-    for (let i = beginMatches.length - 1; i >= 0; i--) {
-      const beginIdx = beginMatches[i].index ?? -1;
-      if (beginIdx < 0) continue;
-      const afterBegin = result.slice(beginIdx + beginMatches[i][0].length);
-      const endMatch = END.exec(afterBegin);
-      if (!endMatch) continue;
-      const nextBeginInSpan = BEGIN.exec(afterBegin.slice(0, endMatch.index));
-      if (nextBeginInSpan) continue; // not innermost - a nested begin closes first
-      const endIdx = beginIdx + beginMatches[i][0].length + endMatch.index + endMatch[0].length;
-      result = result.slice(0, beginIdx) + " " + result.slice(endIdx);
-      removed = true;
-      break;
+  // Single pass with a stack of open "begin" positions: whenever an "end"
+  // pops the stack back to empty, that span (from its outermost begin to
+  // this end) is a whole top-level procedural block, nested begin/end
+  // pairs included - removing it whole has the same result as hollowing
+  // it out from the inside, without the repeated whole-string re-scans
+  // that would take.
+  const TOKEN = /\b(begin|end)\b/g;
+  const spans: { start: number; end: number }[] = [];
+  const openStack: number[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = TOKEN.exec(text)) !== null) {
+    if (m[1] === "begin") {
+      openStack.push(m.index);
+    } else if (openStack.length > 0) {
+      const beginIdx = openStack.pop()!;
+      if (openStack.length === 0) {
+        spans.push({ start: beginIdx, end: m.index + m[0].length });
+      }
     }
-    if (!removed) break;
+  }
+
+  let result = text;
+  for (let i = spans.length - 1; i >= 0; i--) {
+    result = result.slice(0, spans[i].start) + " " + result.slice(spans[i].end);
   }
   // function..endfunction / task..endtask bodies (rare in this curriculum,
   // but stripped for the same reason).

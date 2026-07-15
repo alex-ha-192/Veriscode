@@ -100,11 +100,9 @@
     for (let i = 0; i < n; i++) {
       const header = makeDiv("header-cell", state.hasClock ? `cycle ${i}` : `t${i}`);
       if (n > 1) {
-        const remove = document.createElement("span");
-        remove.className = "remove";
-        remove.textContent = "✕";
-        remove.title = "Remove this column";
-        remove.addEventListener("click", () => vscode.postMessage({ type: "removeStep", step: i }));
+        const remove = makeRemoveButton("remove", "Remove this column", () =>
+          vscode.postMessage({ type: "removeStep", step: i })
+        );
         header.appendChild(remove);
       }
       el.diagram.appendChild(header);
@@ -182,15 +180,16 @@
     return cell;
   }
 
-  function openInlineEditor(hostEl, signalName, stepIndex) {
-    const current = state.steps[stepIndex]?.[signalName] ?? "0";
+  // Builds the actual <input> for an inline cell edit - value, commit (on
+  // blur, trimmed, empty falls back to "0"), and Enter/Escape handling.
+  // Shared by openInlineEditor (bus cells, a plain DOM cell) and
+  // openSvgEditor (1-bit wave cells, where the input lives inside an SVG
+  // foreignObject) - the only real difference between the two call sites
+  // is how the returned input gets attached to the page.
+  function makeCellEditor(current, signalName, stepIndex) {
     const input = document.createElement("input");
     input.className = "cell-edit-input";
     input.value = current;
-    hostEl.textContent = "";
-    hostEl.appendChild(input);
-    input.focus();
-    input.select();
     const commit = () => {
       const value = input.value.trim() || "0";
       vscode.postMessage({ type: "setValue", step: stepIndex, signal: signalName, value });
@@ -203,6 +202,16 @@
       }
     });
     input.addEventListener("blur", commit, { once: true });
+    return input;
+  }
+
+  function openInlineEditor(hostEl, signalName, stepIndex) {
+    const current = state.steps[stepIndex]?.[signalName] ?? "0";
+    const input = makeCellEditor(current, signalName, stepIndex);
+    hostEl.textContent = "";
+    hostEl.appendChild(input);
+    input.focus();
+    input.select();
   }
 
   function makeWaveCell(port, editable) {
@@ -222,8 +231,10 @@
   }
 
   function renderValues() {
-    // Bus cells.
-    document.querySelectorAll(".bus-cell").forEach((elm) => {
+    // Bus cells. Scoped to the diagram grid, not the whole document - this
+    // runs after every simulation result, so there's no reason to have it
+    // walk unrelated parts of the page (the schematic tab, toolbar, etc).
+    el.diagram.querySelectorAll(".bus-cell").forEach((elm) => {
       const div = /** @type {HTMLElement} */ (elm);
       if (div.querySelector("input")) return; // mid-edit, don't clobber
       const signal = div.dataset.signal;
@@ -234,7 +245,7 @@
     });
 
     // Wave (1-bit) rows.
-    document.querySelectorAll("svg.wave").forEach((elm) => {
+    el.diagram.querySelectorAll("svg.wave").forEach((elm) => {
       const svg = /** @type {SVGSVGElement} */ (elm);
       const signal = svg.dataset.signal;
       const port = state.module.ports.find((p) => p.name === signal);
@@ -292,25 +303,11 @@
     fo.setAttribute("y", "2");
     fo.setAttribute("width", String(CELL_W - 4));
     fo.setAttribute("height", String(ROW_H - 4));
-    const input = document.createElement("input");
-    input.className = "cell-edit-input";
-    input.value = current;
+    const input = makeCellEditor(current, signalName, stepIndex);
     fo.appendChild(input);
     svg.appendChild(fo);
     input.focus();
     input.select();
-    const commit = () => {
-      const value = input.value.trim() || "0";
-      vscode.postMessage({ type: "setValue", step: stepIndex, signal: signalName, value });
-    };
-    input.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") input.blur();
-      if (e.key === "Escape") {
-        input.value = current;
-        input.blur();
-      }
-    });
-    input.addEventListener("blur", commit, { once: true });
   }
 
   // --- Diagram tab: a read-only structural view of the module and any
@@ -322,7 +319,7 @@
 
   /** @type {Record<string, {x: number, y: number}>} */
   const boxPositions = {};
-  const { ensurePosition, positionBox, makeDraggable } = window.VeriscodeSchematic;
+  const { ensurePosition, positionBox, makeDraggable, makeRemoveButton } = window.VeriscodeSchematic;
 
   function renderSchematic() {
     const canvas = el.schematicCanvas;
