@@ -17,7 +17,20 @@ The workflow it's built for:
    interactive timing diagram opens: click any input cell to type a value
    for that signal at that clock cycle (`1`, `0`, `x`, `4'hA`, ...), add
    more cycles, and watch the outputs update automatically as Icarus
-   Verilog re-runs in the background.
+   Verilog re-runs in the background. A second **Logical Schematic** tab
+   in the same panel shows the module's structure - any submodules it
+   instantiates, as draggable boxes with net names you can hover to trace
+   a connection - built from parsing the source, not a live simulation.
+4. Once you've built a few small modules (e.g. working through the
+   built-in **CPU workshop** template, picked from the same New Project
+   flow - a half adder up through a tiny single-cycle CPU, meant for a
+   1-2 hour no-prior-HDL-experience session), wire them into a top-level
+   module without hand-writing instantiation syntax: **Veriscode: Build
+   Top Module (GUI)** (from the Command Palette, the sidebar, or
+   right-click a folder in the Explorer) opens a drag-and-drop canvas -
+   pick modules from a palette, type matching net names into each port to
+   connect them, declare the top module's own ports, and Generate writes
+   out real, readable SystemVerilog and opens it.
 
 The sidebar (`extensions/veriscode/src/webview/sidebarView.ts`) is
 deliberately a compact launcher/status panel, not the diagram itself - a

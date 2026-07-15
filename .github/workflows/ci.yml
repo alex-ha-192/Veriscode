@@ -46,6 +46,7 @@ jobs:
           node test/toolchain-fallback.js
           node test/default-steps.js
           node test/instance-parser.js
+          node test/top-generator.js
 
       - name: Package extension (.vsix)
         run: |

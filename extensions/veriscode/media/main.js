@@ -322,13 +322,7 @@
 
   /** @type {Record<string, {x: number, y: number}>} */
   const boxPositions = {};
-
-  function ensurePosition(id, defaultX, defaultY) {
-    if (!boxPositions[id]) {
-      boxPositions[id] = { x: defaultX, y: defaultY };
-    }
-    return boxPositions[id];
-  }
+  const { ensurePosition, positionBox, makeDraggable } = window.VeriscodeSchematic;
 
   function renderSchematic() {
     const canvas = el.schematicCanvas;
@@ -341,7 +335,7 @@
 
     const topPorts = state.module.ports;
     const topBox = makeSchematicBox("top", state.module.name, "top-level module", topPorts, true);
-    const topPos = ensurePosition("top", 20, 20);
+    const topPos = ensurePosition(boxPositions, "top", 20, 20);
     positionBox(topBox, topPos);
     canvas.appendChild(topBox);
 
@@ -372,7 +366,7 @@
           ports,
           false
         );
-        const pos = ensurePosition(`inst:${inst.instanceName}`, 320, 20 + i * 170);
+        const pos = ensurePosition(boxPositions, `inst:${inst.instanceName}`, 320, 20 + i * 170);
         positionBox(box, pos);
         canvas.appendChild(box);
       });
@@ -395,11 +389,6 @@
 
   function cssEscape(value) {
     return window.CSS && CSS.escape ? CSS.escape(value) : value.replace(/["\\]/g, "\\$&");
-  }
-
-  function positionBox(box, pos) {
-    box.style.left = `${pos.x}px`;
-    box.style.top = `${pos.y}px`;
   }
 
   function makeSchematicBox(id, title, subtitle, ports, isTop) {
@@ -445,51 +434,8 @@
       box.appendChild(row);
     }
 
-    makeDraggable(box, titleEl);
+    makeDraggable(box, titleEl, boxPositions, id);
     return box;
-  }
-
-  function makeDraggable(box, handle) {
-    let dragging = false;
-    let startX = 0;
-    let startY = 0;
-    let originX = 0;
-    let originY = 0;
-
-    handle.addEventListener("mousedown", (e) => {
-      dragging = true;
-      startX = e.clientX;
-      startY = e.clientY;
-      const rect = box.getBoundingClientRect();
-      const canvasRect = el.schematicCanvas.getBoundingClientRect();
-      originX = rect.left - canvasRect.left + el.schematicCanvas.scrollLeft;
-      originY = rect.top - canvasRect.top + el.schematicCanvas.scrollTop;
-      e.preventDefault();
-    });
-
-    window.addEventListener("mousemove", (e) => {
-      if (!dragging) return;
-      const dx = e.clientX - startX;
-      const dy = e.clientY - startY;
-      const x = Math.max(0, originX + dx);
-      const y = Math.max(0, originY + dy);
-      box.style.left = `${x}px`;
-      box.style.top = `${y}px`;
-    });
-
-    window.addEventListener("mouseup", (e) => {
-      if (!dragging) return;
-      dragging = false;
-      const dx = e.clientX - startX;
-      const dy = e.clientY - startY;
-      const x = Math.max(0, originX + dx);
-      const y = Math.max(0, originY + dy);
-      const id = box.dataset.boxId;
-      if (id && boxPositions[id]) {
-        boxPositions[id].x = x;
-        boxPositions[id].y = y;
-      }
-    });
   }
 
   vscode.postMessage({ type: "ready" });

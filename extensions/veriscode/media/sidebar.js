@@ -3,6 +3,7 @@
 
   const el = {
     newProject: document.getElementById("newProject"),
+    composeTop: document.getElementById("composeTop"),
     activeSection: document.getElementById("activeSection"),
     emptySection: document.getElementById("emptySection"),
     moduleName: document.getElementById("moduleName"),
@@ -12,6 +13,7 @@
   };
 
   el.newProject.addEventListener("click", () => vscode.postMessage({ type: "newProject" }));
+  el.composeTop.addEventListener("click", () => vscode.postMessage({ type: "composeTop" }));
   el.simulate.addEventListener("click", () => vscode.postMessage({ type: "simulate" }));
 
   window.addEventListener("message", (event) => {

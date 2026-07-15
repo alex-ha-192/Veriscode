@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { newProjectCommand } from "./newProject";
+import { composeTopCommand } from "./composeTop";
 import { SimulateCodeLensProvider } from "./simulateCodeLens";
 import { SimulatorPanel } from "./webview/panel";
 import { SidebarViewProvider } from "./webview/sidebarView";
@@ -20,6 +21,8 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.window.registerWebviewViewProvider(SidebarViewProvider.viewType, new SidebarViewProvider(context)),
 
     vscode.commands.registerCommand("veriscode.newProject", () => newProjectCommand(context)),
+
+    vscode.commands.registerCommand("veriscode.composeTop", (uri?: vscode.Uri) => composeTopCommand(context, uri)),
 
     vscode.commands.registerCommand("veriscode.simulate", async (uri?: vscode.Uri) => {
       const targetUri = uri ?? vscode.window.activeTextEditor?.document.uri;

@@ -4,6 +4,7 @@ import { simulate } from "../simulation/icarusRunner";
 import { buildDefaultSteps, backfillSteps } from "../simulation/defaultSteps";
 import { parseInstances, ModuleInstance } from "../simulation/instanceParser";
 import { ParsedModule, SimStep } from "../simulation/types";
+import { getNonce, contentSecurityPolicy } from "./webviewUtils";
 
 interface ClientState {
   module: { name: string; ports: ParsedModule["ports"] };
@@ -220,6 +221,9 @@ export class SimulatorPanel {
     const scriptUri = webview.asWebviewUri(
       vscode.Uri.joinPath(this.context.extensionUri, "media", "main.js")
     );
+    const dragUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(this.context.extensionUri, "media", "schematicCanvas.js")
+    );
     const styleUri = webview.asWebviewUri(
       vscode.Uri.joinPath(this.context.extensionUri, "media", "style.css")
     );
@@ -227,7 +231,7 @@ export class SimulatorPanel {
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource}; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';" />
+  <meta http-equiv="Content-Security-Policy" content="${contentSecurityPolicy(webview, nonce)}" />
   <link rel="stylesheet" href="${styleUri}" />
   <title>Veriscode Simulator</title>
 </head>
@@ -236,7 +240,7 @@ export class SimulatorPanel {
   <p class="subtitle" id="subtitle"></p>
   <div class="tabs">
     <button class="tab active" id="tabTiming" data-tab="timing">Timing Diagram</button>
-    <button class="tab" id="tabSchematic" data-tab="schematic">Diagram</button>
+    <button class="tab" id="tabSchematic" data-tab="schematic">Logical Schematic</button>
   </div>
   <div id="timingView">
     <div class="toolbar">
@@ -254,17 +258,9 @@ export class SimulatorPanel {
     <p class="legend">Drag boxes to rearrange. Hover a net name to highlight every place it's connected.</p>
     <div class="schematic-canvas" id="schematicCanvas"></div>
   </div>
+  <script nonce="${nonce}" src="${dragUri}"></script>
   <script nonce="${nonce}" src="${scriptUri}"></script>
 </body>
 </html>`;
   }
-}
-
-function getNonce(): string {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  let text = "";
-  for (let i = 0; i < 32; i++) {
-    text += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return text;
 }
