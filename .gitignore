@@ -6,4 +6,5 @@ out/
 .build/
 vendor/
 extensions/*/bin/
+.claude/
 

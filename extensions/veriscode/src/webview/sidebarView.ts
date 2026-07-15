@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { parseModule } from "../simulation/portParser";
 import { isSystemVerilogDoc } from "../isSystemVerilogDoc";
+import { getNonce, contentSecurityPolicy } from "./webviewUtils";
 
 /**
  * A PlatformIO-style Activity Bar panel: quick actions (New Project,
@@ -43,6 +44,9 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider {
         case "newProject":
           void vscode.commands.executeCommand("veriscode.newProject");
           break;
+        case "composeTop":
+          void vscode.commands.executeCommand("veriscode.composeTop");
+          break;
         case "simulate":
           void vscode.commands.executeCommand("veriscode.simulate");
           break;
@@ -74,12 +78,13 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider {
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource}; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';" />
+  <meta http-equiv="Content-Security-Policy" content="${contentSecurityPolicy(webview, nonce)}" />
   <link rel="stylesheet" href="${styleUri}" />
   <title>Veriscode</title>
 </head>
 <body>
   <button id="newProject">+ New SystemVerilog Project</button>
+  <button class="secondary" id="composeTop">Build Top Module (GUI)</button>
 
   <h2>Active File</h2>
   <div id="emptySection">Open a .sv file to see it here.</div>
@@ -94,13 +99,4 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider {
 </body>
 </html>`;
   }
-}
-
-function getNonce(): string {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  let text = "";
-  for (let i = 0; i < 32; i++) {
-    text += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return text;
 }

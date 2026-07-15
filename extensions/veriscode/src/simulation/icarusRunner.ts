@@ -14,6 +14,32 @@ export interface IcarusPaths {
 }
 
 /**
+ * A multi-module design (e.g. a CPU built from an ALU + register + memory,
+ * each in its own file) needs every source file compiled together, not
+ * just the one currently open. Rather than requiring students to manage a
+ * file list or `\`include`, every other .sv/.v file that lives next to the
+ * DUT is compiled alongside it automatically - "put your files in the same
+ * folder" is the whole mental model, deliberately simple. Icarus resolves
+ * instantiated submodules by name across all compiled units regardless of
+ * which file they're declared in, so this is enough for the DUT to
+ * instantiate any sibling module without extra ceremony.
+ */
+function siblingSources(modulePath: string): string[] {
+  const dir = path.dirname(modulePath);
+  let entries: string[];
+  try {
+    entries = fs.readdirSync(dir);
+  } catch {
+    return [];
+  }
+  return entries
+    .filter((f) => /\.(sv|v)$/i.test(f))
+    .map((f) => path.join(dir, f))
+    .filter((p) => path.resolve(p) !== path.resolve(modulePath))
+    .sort();
+}
+
+/**
  * Bundled Icarus installs ship a "lib" support directory next to the
  * binaries (ivlpp/ivl/code generators and .vpi modules). Icarus bakes
  * absolute paths to that directory into both the iverilog binary's
@@ -84,7 +110,7 @@ export async function simulate(
     fs.writeFileSync(tbPath, tbSource, "utf8");
 
     const compileArgs = supportDir ? ["-B", supportDir] : [];
-    compileArgs.push("-g2012", "-o", vvpOutPath, modulePath, tbPath);
+    compileArgs.push("-g2012", "-o", vvpOutPath, modulePath, ...siblingSources(modulePath), tbPath);
     const compile = await run(iverilog, compileArgs, workDir);
     if (compile.code !== 0) {
       return { ok: false, log: compile.output || "iverilog compilation failed.", signals: [] };

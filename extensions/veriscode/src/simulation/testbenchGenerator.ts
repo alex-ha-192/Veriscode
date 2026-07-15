@@ -13,8 +13,12 @@ function declFor(port: { name: string; declRange?: string }): string {
   return port.declRange ? `logic ${port.declRange} ${port.name}` : `logic ${port.name}`;
 }
 
-function sanitizeValue(raw: string): string {
-  const v = raw.trim();
+function sanitizeValue(raw: string | undefined): string {
+  // A step missing a value entirely (e.g. a port introduced after the
+  // step table was built - normally backfilled by backfillSteps, but
+  // this is the last line of defense) drives 'x, same as an explicitly
+  // blank cell, rather than crashing testbench generation.
+  const v = (raw ?? "").trim();
   return v.length > 0 ? v : "'x";
 }
 

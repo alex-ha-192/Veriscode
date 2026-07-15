@@ -13,6 +13,8 @@ export interface Port {
   declRange?: string;
   /** True if this port looks like a free-running clock (name matches clk/clock). */
   isClockLike: boolean;
+  /** Best-effort guess at reset semantics from the name, used only to pick sane default step values. */
+  resetPolarity?: "active-low" | "active-high";
 }
 
 export interface ParsedModule {

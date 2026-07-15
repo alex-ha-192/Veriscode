@@ -3,6 +3,7 @@
 
   const el = {
     newProject: document.getElementById("newProject"),
+    composeTop: document.getElementById("composeTop"),
     activeSection: document.getElementById("activeSection"),
     emptySection: document.getElementById("emptySection"),
     moduleName: document.getElementById("moduleName"),
@@ -12,6 +13,7 @@
   };
 
   el.newProject.addEventListener("click", () => vscode.postMessage({ type: "newProject" }));
+  el.composeTop.addEventListener("click", () => vscode.postMessage({ type: "composeTop" }));
   el.simulate.addEventListener("click", () => vscode.postMessage({ type: "simulate" }));
 
   window.addEventListener("message", (event) => {
@@ -38,7 +40,10 @@
     for (const port of msg.module.ports) {
       const li = document.createElement("li");
       const width = port.width > 1 ? ` [${port.width - 1}:0]` : "";
-      li.innerHTML = `<span class="dir ${port.direction}">${port.direction}</span> ${port.name}${width}`;
+      const resetBadge = port.resetPolarity
+        ? ` <span class="dir reset">reset (${port.resetPolarity === "active-low" ? "low" : "high"})</span>`
+        : "";
+      li.innerHTML = `<span class="dir ${port.direction}">${port.direction}</span> ${port.name}${width}${resetBadge}`;
       el.portList.appendChild(li);
     }
   }

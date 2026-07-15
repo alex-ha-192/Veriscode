@@ -6,6 +6,7 @@
   "publisher": "veriscode",
   "license": "MIT",
   "private": true,
+  "icon": "icon.png",
   "engines": {
     "vscode": "^1.90.0"
   },
@@ -14,6 +15,7 @@
     "onLanguage:systemverilog",
     "onLanguage:verilog",
     "onCommand:veriscode.newProject",
+    "onCommand:veriscode.composeTop",
     "onCommand:veriscode.simulate",
     "onView:veriscode.home"
   ],
@@ -61,6 +63,12 @@
         "title": "Simulate",
         "category": "Veriscode",
         "icon": "$(play)"
+      },
+      {
+        "command": "veriscode.composeTop",
+        "title": "Build Top Module (GUI)",
+        "shortTitle": "Build Top Module",
+        "category": "Veriscode"
       }
     ],
     "viewsContainers": {
@@ -91,6 +99,7 @@
       ],
       "commandPalette": [
         { "command": "veriscode.newProject" },
+        { "command": "veriscode.composeTop" },
         {
           "command": "veriscode.simulate",
           "when": "resourceLangId == systemverilog || resourceLangId == verilog"
@@ -100,6 +109,13 @@
         {
           "command": "veriscode.newProject",
           "group": "file"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "veriscode.composeTop",
+          "when": "explorerResourceIsFolder",
+          "group": "veriscode"
         }
       ]
     },

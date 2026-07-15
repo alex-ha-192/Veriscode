@@ -101,6 +101,9 @@ button.secondary {
   gap: 6px;
   border-right: 1px solid var(--vscode-panel-border, #8884);
   white-space: nowrap;
+  /* Backstop: keep a long name/badge from spilling out of the label
+     column and over the waveform cells - clip at the border instead. */
+  overflow: hidden;
 }
 
 .row-label .dir {
@@ -113,6 +116,7 @@ button.secondary {
 
 .dir.input { background: var(--vscode-charts-blue, #3794ff33); }
 .dir.output { background: var(--vscode-charts-green, #89d18533); }
+.dir.reset { background: var(--vscode-charts-orange, #d1892533); cursor: help; }
 
 .header-cell {
   font-size: 11px;
@@ -184,4 +188,266 @@ svg.wave rect.hit.editable:hover { fill: var(--vscode-list-hoverBackground); opa
   font-size: 11px;
   opacity: 0.7;
   margin-top: 10px;
+}
+
+.tabs {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--vscode-panel-border, #8884);
+}
+
+button.tab {
+  background: transparent;
+  color: var(--vscode-foreground);
+  opacity: 0.65;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  padding: 6px 4px;
+  margin-right: 12px;
+  font-size: 12px;
+}
+
+button.tab:hover {
+  background: transparent;
+  opacity: 0.9;
+}
+
+button.tab.active {
+  opacity: 1;
+  border-bottom-color: var(--vscode-focusBorder, #007acc);
+  font-weight: 600;
+}
+
+.schematic-canvas {
+  position: relative;
+  min-height: 360px;
+  border: 1px solid var(--vscode-panel-border, #8884);
+  border-radius: 4px;
+  overflow: auto;
+  background:
+    linear-gradient(var(--vscode-panel-border, #8882) 1px, transparent 1px),
+    linear-gradient(90deg, var(--vscode-panel-border, #8882) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.schematic-box {
+  position: absolute;
+  min-width: 160px;
+  background: var(--vscode-editor-background);
+  border: 1px solid var(--vscode-panel-border, #8884);
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  user-select: none;
+}
+
+.schematic-box.top {
+  border-color: var(--vscode-focusBorder, #007acc);
+  border-width: 1.5px;
+}
+
+.schematic-box .box-title {
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--vscode-panel-border, #8884);
+  background: var(--vscode-list-hoverBackground, transparent);
+  border-radius: 6px 6px 0 0;
+  cursor: grab;
+}
+
+.schematic-box .box-title:active {
+  cursor: grabbing;
+}
+
+.schematic-box .box-subtitle {
+  font-size: 10px;
+  opacity: 0.6;
+  font-weight: 400;
+}
+
+.schematic-port-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 11px;
+  padding: 3px 10px;
+}
+
+.schematic-port-row .port-name {
+  opacity: 0.85;
+}
+
+.schematic-port-row .dir {
+  font-size: 9px;
+  text-transform: uppercase;
+  border-radius: 2px;
+  padding: 1px 4px;
+  opacity: 0.75;
+  margin-right: 6px;
+}
+
+.net-name {
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 11px;
+  padding: 0 3px;
+  border-radius: 2px;
+  cursor: default;
+}
+
+.net-name.highlight {
+  background: var(--vscode-editor-findMatchHighlightBackground, #ffd60088);
+  outline: 1px solid var(--vscode-focusBorder, #007acc);
+}
+
+.schematic-empty {
+  padding: 16px;
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+/* --- Top-module composer --- */
+
+.composer-layout {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.composer-palette {
+  flex: 0 0 190px;
+  border: 1px solid var(--vscode-panel-border, #8884);
+  border-radius: 4px;
+  padding: 8px 10px;
+}
+
+.composer-palette h2 {
+  font-size: 12px;
+  margin: 0 0 8px;
+  opacity: 0.8;
+}
+
+.palette-item {
+  border: 1px solid var(--vscode-panel-border, #8884);
+  border-radius: 4px;
+  padding: 6px 8px;
+  margin-bottom: 6px;
+  cursor: pointer;
+}
+
+.palette-item:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.palette-item-name {
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.palette-item-detail {
+  font-size: 10px;
+  opacity: 0.65;
+}
+
+.composer-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.top-name-label {
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.top-name-input,
+.instance-name-input,
+.port-name-input,
+.net-input,
+.width-input,
+.dir-select {
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 11px;
+  background: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border: 1px solid var(--vscode-panel-border, #8884);
+  border-radius: 3px;
+  padding: 2px 5px;
+}
+
+.top-name-input {
+  font-size: 12px;
+  padding: 3px 6px;
+}
+
+.instance-name-input {
+  font-weight: 600;
+  width: 100px;
+  margin-right: 2px;
+}
+
+.net-input {
+  width: 90px;
+  text-align: right;
+}
+
+.width-input {
+  width: 40px;
+}
+
+.port-name-input {
+  width: 80px;
+}
+
+.composer-errors {
+  display: none;
+  white-space: pre-wrap;
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 12px;
+  background: var(--vscode-textCodeBlock-background, #0002);
+  border: 1px solid var(--vscode-errorForeground, #f488714d);
+  color: var(--vscode-errorForeground);
+  border-radius: 4px;
+  padding: 8px;
+  margin-bottom: 10px;
+}
+
+.composer-success {
+  display: none;
+  font-size: 12px;
+  color: var(--vscode-charts-green, #4caf50);
+  margin-bottom: 10px;
+}
+
+.composer-top-box {
+  width: 290px;
+}
+
+.composer-instance-title {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.composer-port-row {
+  justify-content: space-between;
+}
+
+.box-remove {
+  margin-left: auto;
+  opacity: 0.5;
+  cursor: pointer;
+  font-size: 10px;
+  padding: 0 2px;
+}
+
+.box-remove:hover {
+  opacity: 1;
+  color: var(--vscode-errorForeground);
 }
